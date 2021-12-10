@@ -4,7 +4,7 @@
     <string name="skip_text">Skip</string>
     <string name="exg_tab_text">ExG</string>
     <string name="sensor_tab_text">Sensors</string>
-    <string name="other_tab_text">Other</string>
+    <string name="other_tab_text">Impedance</string>
     <string name="temperature">22°</string>
     <string name="connectedDevice">Connected to: Explore_????</string>
     <string name="battery">90%</string>

@@ -20,7 +20,7 @@ class MainActivity : AppCompatActivity() {
 
     fun findDevices(view: View) {
         try{
-            Model.scanDevices(applicationContext)
+            val deviceList = Model.scanDevices(applicationContext)
             Log.d("MainActivity", "Successfully scanned for devices.")
         } catch(e: Exception) {
             Log.d("MainActivity", "Encountered error while scanning for devices.")
