@@ -11,7 +11,7 @@
     <include layout="@layout/main_toolbar" />
 
     <ScrollView
-        android:layout_width="409dp"
+        android:layout_width="match_parent"
         android:layout_height="673dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -21,15 +21,18 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginEnd="20dp"
+            android:layout_marginBottom="20dp"
             android:orientation="vertical">
+
 
             <TextView
                 android:id="@+id/textView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingStart="32dp"
                 android:paddingTop="16dp"
-                android:paddingEnd="32dp"
                 android:paddingBottom="16dp"
                 android:text="@string/settings"
                 android:textSize="24sp" />
@@ -38,9 +41,7 @@
                 android:id="@+id/textView2"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingStart="32dp"
                 android:paddingTop="4dp"
-                android:paddingEnd="32dp"
                 android:paddingBottom="4dp"
                 android:text="@string/device_settings"
                 android:textColor="#00BCD4"
@@ -52,26 +53,24 @@
                 android:layout_height="match_parent"
                 android:orientation="horizontal">
 
+                <Spinner
+                    android:id="@+id/spinner2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="#BBBBBB"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:spinnerMode="dropdown" />
+
                 <TextView
                     android:id="@+id/textView4"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:paddingStart="32dp"
                     android:paddingTop="4dp"
-                    android:paddingEnd="32dp"
                     android:paddingBottom="4dp"
                     android:text="@string/sample_rate"
                     android:textSize="16sp" />
-
-                <Spinner
-                    android:id="@+id/spinner2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:background="#BBBBBB"
-                    android:spinnerMode="dropdown"/>
 
             </LinearLayout>
 
@@ -80,9 +79,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:paddingStart="32dp"
                 android:paddingTop="4dp"
-                android:paddingEnd="32dp"
                 android:paddingBottom="4dp"
                 android:text="@string/active_channels"
                 android:textSize="16sp" />
@@ -91,9 +88,7 @@
                 android:id="@+id/switch2"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingStart="32dp"
                 android:paddingTop="4dp"
-                android:paddingEnd="32dp"
                 android:paddingBottom="4dp"
                 android:switchPadding="32dp"
                 android:text="@string/channel_1"
@@ -104,9 +99,7 @@
                 android:id="@+id/switch3"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingStart="32dp"
                 android:paddingTop="4dp"
-                android:paddingEnd="32dp"
                 android:paddingBottom="4dp"
                 android:switchPadding="32dp"
                 android:text="@string/channel_2"
@@ -117,9 +110,7 @@
                 android:id="@+id/switch4"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingStart="32dp"
                 android:paddingTop="4dp"
-                android:paddingEnd="32dp"
                 android:paddingBottom="4dp"
                 android:switchPadding="32dp"
                 android:text="@string/channel_3"
@@ -130,9 +121,7 @@
                 android:id="@+id/switch5"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingStart="32dp"
                 android:paddingTop="4dp"
-                android:paddingEnd="32dp"
                 android:paddingBottom="4dp"
                 android:switchPadding="32dp"
                 android:text="@string/channel_4"
@@ -144,9 +133,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:paddingStart="32dp"
                 android:paddingTop="4dp"
-                android:paddingEnd="32dp"
                 android:paddingBottom="4dp"
                 android:text="@string/active_modules"
                 android:textSize="16sp" />
@@ -155,9 +142,7 @@
                 android:id="@+id/switch6"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingStart="32dp"
                 android:paddingTop="4dp"
-                android:paddingEnd="32dp"
                 android:paddingBottom="4dp"
                 android:switchPadding="32dp"
                 android:text="@string/exg_tab_text"
@@ -168,9 +153,7 @@
                 android:id="@+id/switch7"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingStart="32dp"
                 android:paddingTop="4dp"
-                android:paddingEnd="32dp"
                 android:paddingBottom="4dp"
                 android:switchPadding="32dp"
                 android:text="@string/sensor_tab_text"
@@ -181,9 +164,7 @@
                 android:id="@+id/switch8"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingStart="32dp"
                 android:paddingTop="4dp"
-                android:paddingEnd="32dp"
                 android:paddingBottom="4dp"
                 android:switchPadding="32dp"
                 android:text="@string/other_tab_text"
@@ -194,9 +175,7 @@
                 android:id="@+id/textView11"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingStart="32dp"
                 android:paddingTop="16dp"
-                android:paddingEnd="32dp"
                 android:paddingBottom="4dp"
                 android:text="@string/about_device"
                 android:textColor="#00BCD4"
@@ -210,24 +189,21 @@
 
                 <TextView
                     android:id="@+id/textView12"
-                    android:layout_width="0dp"
+                    android:layout_width="75dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:paddingStart="32dp"
                     android:paddingTop="4dp"
-                    android:paddingEnd="32dp"
                     android:paddingBottom="4dp"
                     android:text="@string/firmware_version"
                     android:textSize="16sp" />
+
 
                 <TextView
                     android:id="@+id/textView13"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:paddingStart="32dp"
                     android:paddingTop="4dp"
-                    android:paddingEnd="32dp"
                     android:paddingBottom="4dp"
                     android:text="@string/firmware_version_number"
                     android:textAlignment="viewEnd"
@@ -239,9 +215,7 @@
                 android:id="@+id/textView14"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingStart="32dp"
                 android:paddingTop="16dp"
-                android:paddingEnd="32dp"
                 android:paddingBottom="4dp"
                 android:text="@string/data_settings"
                 android:textColor="#00BCD4"
@@ -258,9 +232,7 @@
                     android:id="@+id/textView15"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:paddingStart="32dp"
                     android:paddingTop="4dp"
-                    android:paddingEnd="32dp"
                     android:paddingBottom="4dp"
                     android:text="@string/import_data"
                     android:textSize="16sp" />
@@ -274,11 +246,12 @@
                     android:id="@+id/button3"
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
-                    android:gravity="right"
-                    android:text="@string/testButtonName"
-                    android:textAlignment="center"
+                    android:layout_marginVertical="2dp"
+                    android:onClick="findDevices"
+                    android:text="@string/upload"
+                    android:background="@drawable/rounded_corners_gray"
                     android:textSize="12sp"
-                    tools:ignore="TouchTargetSizeCheck,DuplicateSpeakableTextCheck" />
+                    tools:ignore="TouchTargetSizeCheck" />
 
             </LinearLayout>
 
@@ -286,14 +259,13 @@
                 android:id="@+id/textView16"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingStart="32dp"
                 android:paddingTop="16dp"
-                android:paddingEnd="32dp"
                 android:paddingBottom="4dp"
                 android:text="@string/bluetooth_settings"
                 android:textColor="#00BCD4"
                 android:textSize="12sp"
                 tools:ignore="TextContrastCheck" />
+
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -305,9 +277,7 @@
                     android:id="@+id/textView17"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:paddingStart="32dp"
                     android:paddingTop="4dp"
-                    android:paddingEnd="32dp"
                     android:paddingBottom="4dp"
                     android:text="@string/connect_to_a_device"
                     android:textSize="16sp" />
@@ -321,9 +291,11 @@
                     android:id="@+id/button4"
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
-                    android:text="@string/testButtonName"
-                    android:textSize="12sp"
+                    android:layout_marginVertical="2dp"
                     android:onClick="findDevices"
+                    android:text="@string/connect"
+                    android:background="@drawable/rounded_corners_gray"
+                    android:textSize="12sp"
                     tools:ignore="TouchTargetSizeCheck" />
 
             </LinearLayout>
@@ -338,9 +310,7 @@
                     android:id="@+id/textView18"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:paddingStart="32dp"
                     android:paddingTop="4dp"
-                    android:paddingEnd="32dp"
                     android:paddingBottom="4dp"
                     android:text="@string/disconnect_device"
                     android:textSize="16sp" />
@@ -354,7 +324,9 @@
                     android:id="@+id/button5"
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
-                    android:text="@string/testButtonName"
+                    android:layout_marginVertical="2dp"
+                    android:text="@string/disconnect"
+                    android:background="@drawable/rounded_corners_gray"
                     android:textSize="12sp"
                     tools:ignore="TouchTargetSizeCheck" />
 
@@ -362,8 +334,11 @@
 
             <Button
                 android:id="@+id/button6"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginVertical="25dp"
+                android:layout_gravity="end"
+                android:background="@drawable/rounded_corners_gray"
                 android:onClick="applySettings"
                 android:text="@string/apply" />
 

@@ -15,9 +15,6 @@ import androidx.cardview.widget.CardView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
-import androidx.viewpager2.widget.ViewPager2
-import com.google.android.material.tabs.TabLayout
-import com.google.android.material.tabs.TabLayoutMediator
 import kotlin.random.Random
 
 class DataPagerAdapter(fragmentActivity: FragmentActivity, val fragments:ArrayList<Fragment>) : FragmentStateAdapter(fragmentActivity) {
@@ -32,17 +29,90 @@ class LineChart @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : CardView(context, attrs, defStyleAttr) {
+    var paddingHorizontal = 20.0f
+    var paddingVertical = 20.0f
+
+    var yAxisX = paddingHorizontal
+    var yAxisY1 = paddingVertical
+    var yAxisY2 = yAxisY1
+
+    var xAxisX1 = yAxisX
+    var xAxisX2 = xAxisX1
+    var xAxisY = yAxisY2
+
+    var xStep = 10
+
+    var spacehorizontal = 0.0f
+    var spacevertical = 0.0f
+
     private val paint = Paint().apply {
-        color = 0xffff0000.toInt()
-        strokeWidth = 5.0f
+        color = 0xff000000.toInt()
+        strokeWidth = 2.0f
     }
 
-    fun generateRandomDatapoints() {
-
+    override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+        super.onLayout(changed, left, top, right, bottom)
+        yAxisY2 = this.measuredHeight.toFloat() - paddingVertical
+        xAxisX2 = this.measuredWidth.toFloat() - paddingHorizontal
+        xAxisY = yAxisY2
+        spacehorizontal = this.measuredWidth - 2*paddingHorizontal
+        spacevertical = this.measuredHeight - 2*paddingVertical
     }
 
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
+
+        canvas?.drawLine(yAxisX, yAxisY1, yAxisX, yAxisY2, paint)
+        canvas?.drawLine(xAxisX1, xAxisY, xAxisX2, xAxisY, paint)
+
+        var datapoints = Model.getData()
+        var start: Float? = null
+        var end = 0.0f
+        for((i, datapoint) in datapoints.withIndex()) {
+
+            end = datapoint
+            start?.let {
+                canvas?.drawLine((i-1)*spacehorizontal/datapoints.size + paddingHorizontal, start!!/1000 * spacevertical + paddingVertical, i*spacehorizontal/datapoints.size + paddingHorizontal, end!!/1000 * spacevertical + paddingVertical, paint)
+            }
+
+            if (i % xStep == 0 && i != 0) {
+                canvas?.drawLine((i-1)*spacehorizontal/datapoints.size + paddingHorizontal, xAxisY-5.0f, (i-1)*spacehorizontal/datapoints.size + paddingHorizontal, xAxisY+5.0f, paint)
+            }
+
+            start = datapoint
+        }
+
+        val avgY = (yAxisY2-yAxisY1)/2
+        val realZero = Model.getAverage()/1000 * spacevertical + paddingVertical
+        canvas?.drawLine(yAxisX-5.0f, avgY, yAxisX+5.0f, avgY, paint)
+        canvas?.drawLine(yAxisX-5.0f, realZero, yAxisX+5.0f, realZero, paint)
+    }
+}
+
+class LineChart2 : CardView {
+    var paint: Paint = Paint().apply {
+        color = 0xffff0000.toInt()
+        strokeWidth = 2.0f
+    }
+
+    var startx = 5.0f
+    var starty = 5.0f
+    var endx = startx
+    var endy = 0.0f
+
+    var paddingHorizontal = 2*startx
+    var paddingVertical = 2*starty
+
+
+    constructor(context: Context, ) : super(context) {
+        endy = this.measuredHeight.toFloat() - 5.0f
+    }
+
+
+    override fun onDraw(canvas: Canvas?) {
+        super.onDraw(canvas)
+
+        canvas?.drawLine(startx, starty, endx, endy, paint)
 
         var array : FloatArray
         var randomY1 = Random.nextInt(this.measuredHeight).toFloat()
@@ -63,11 +133,13 @@ class ExgDataFragment : Fragment() {
     lateinit var chart1 : CardView
     lateinit var chart2 : CardView
 
-    val updateChart = object : Runnable {
+    val updateChartDelayed = object : Runnable {
         override fun run() {
+            Model.insertTestData()
             chart1.invalidate()
             chart2.invalidate()
-            mainHandler.postDelayed(this, 1000)
+            mainHandler.post(this)
+            //mainHandler.postDelayed(this, 100)
         }
     }
 
@@ -87,12 +159,12 @@ class ExgDataFragment : Fragment() {
 
     override fun onPause() {
         super.onPause()
-        mainHandler.removeCallbacks(updateChart)
+        mainHandler.removeCallbacks(updateChartDelayed)
     }
 
     override fun onResume() {
         super.onResume()
-        mainHandler.post(updateChart)
+        mainHandler.post(updateChartDelayed)
     }
 
     companion object{

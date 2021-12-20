@@ -10,9 +10,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar">
         <activity
+            android:name=".ConnectBluetoothActivity"
+            android:exported="false" />
+        <activity
             android:name=".Settings"
             android:exported="false"
-            android:parentActivityName=".DisplayDataActivity"/>
+            android:parentActivityName=".DisplayDataActivity" />
         <activity
             android:name=".DisplayDataActivity"
             android:exported="false" />
@@ -26,8 +29,9 @@
             </intent-filter>
         </activity>
     </application>
-    <uses-permission android:name="android.permission.INTERNET" />
-
     <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
 
 </manifest>
