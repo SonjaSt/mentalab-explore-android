@@ -15,6 +15,7 @@ import androidx.cardview.widget.CardView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
+import kotlin.math.absoluteValue
 import kotlin.random.Random
 
 class DataPagerAdapter(fragmentActivity: FragmentActivity, val fragments:ArrayList<Fragment>) : FragmentStateAdapter(fragmentActivity) {
@@ -29,6 +30,8 @@ class LineChart @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : CardView(context, attrs, defStyleAttr) {
+    var streamTag: String = ""
+
     var paddingHorizontal = 20.0f
     var paddingVertical = 20.0f
 
@@ -56,23 +59,31 @@ class LineChart @JvmOverloads constructor(
         xAxisX2 = this.measuredWidth.toFloat() - paddingHorizontal
         xAxisY = yAxisY2
         spacehorizontal = this.measuredWidth - 2*paddingHorizontal
-        spacevertical = this.measuredHeight - 2*paddingVertical
+        spacevertical = this.measuredHeight - 4*paddingVertical
     }
 
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
 
+        //Log.d("ONDRAW", "streamtag: $streamTag")
         canvas?.drawLine(yAxisX, yAxisY1, yAxisX, yAxisY2, paint)
         canvas?.drawLine(xAxisX1, xAxisY, xAxisX2, xAxisY, paint)
 
-        var datapoints = Model.getData()
+        var datapoints = Model.getData(streamTag)
         var start: Float? = null
         var end = 0.0f
         for((i, datapoint) in datapoints.withIndex()) {
 
             end = datapoint
             start?.let {
-                canvas?.drawLine((i-1)*spacehorizontal/datapoints.size + paddingHorizontal, start!!/1000 * spacevertical + paddingVertical, i*spacehorizontal/datapoints.size + paddingHorizontal, end!!/1000 * spacevertical + paddingVertical, paint)
+                var startY = yAxisY2-(start!!+Model.getMax(streamTag).absoluteValue)/(2.0f*Model.getMax(streamTag).absoluteValue) * spacevertical
+                var stopY = yAxisY2-(end!!+Model.getMax(streamTag).absoluteValue)/(2.0f*Model.getMax(streamTag).absoluteValue) * spacevertical
+                //Log.d("ONDRAW", "Start Y: $startY")
+                //Log.d("ONDRAW", "Stop Y: $stopY")
+                //Log.d("ONDRAW", "Y Axis Start Y: $yAxisY1")
+                //Log.d("ONDRAW", "Y Axis Stop Y: $yAxisY2")
+                //Log.d("ONDRAW", "DATAPOINT: $end")
+                canvas?.drawLine((i-1)*spacehorizontal/datapoints.size + paddingHorizontal, startY, i*spacehorizontal/datapoints.size + paddingHorizontal, stopY, paint)
             }
 
             if (i % xStep == 0 && i != 0) {
@@ -83,9 +94,9 @@ class LineChart @JvmOverloads constructor(
         }
 
         val avgY = (yAxisY2-yAxisY1)/2
-        val realZero = Model.getAverage()/1000 * spacevertical + paddingVertical
+        //val realZero = Model.getAverage()/1000 * spacevertical + paddingVertical
         canvas?.drawLine(yAxisX-5.0f, avgY, yAxisX+5.0f, avgY, paint)
-        canvas?.drawLine(yAxisX-5.0f, realZero, yAxisX+5.0f, realZero, paint)
+        //canvas?.drawLine(yAxisX-5.0f, realZero, yAxisX+5.0f, realZero, paint)
     }
 }
 
@@ -130,16 +141,17 @@ class LineChart2 : CardView {
 class ExgDataFragment : Fragment() {
 
     lateinit var mainHandler : Handler
-    lateinit var chart1 : CardView
-    lateinit var chart2 : CardView
+    lateinit var chart1 : LineChart
+    lateinit var chart2 : LineChart
 
     val updateChartDelayed = object : Runnable {
         override fun run() {
-            Model.insertTestData()
+            Model.insertDataFromDevice("Gyro_X")
+            Model.insertDataFromDevice("Gyro_Z")
             chart1.invalidate()
             chart2.invalidate()
-            mainHandler.post(this)
-            //mainHandler.postDelayed(this, 100)
+            //mainHandler.post(this)
+            mainHandler.postDelayed(this, 100)
         }
     }
 
@@ -150,7 +162,9 @@ class ExgDataFragment : Fragment() {
     ): View? {
         val baseView = inflater.inflate(R.layout.exg_fragment, container, false)
         chart1 = baseView.findViewById<LineChart>(R.id.card_view)
+        chart1.streamTag = "Gyro_X"
         chart2 = baseView.findViewById<LineChart>(R.id.card_view2)
+        chart2.streamTag = "Gyro_Z"
 
         mainHandler = Handler(Looper.getMainLooper())
 
