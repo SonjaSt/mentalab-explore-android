@@ -4,6 +4,9 @@ import android.content.Intent
 import android.graphics.drawable.Drawable
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import android.view.Menu
 import android.view.View
 import androidx.appcompat.widget.Toolbar
@@ -15,6 +18,25 @@ import com.google.android.material.tabs.TabLayoutMediator
 class DisplayDataActivity : AppCompatActivity() {
 
     lateinit var tabArray: Array<String>
+    var menu: Menu? = null
+    lateinit var mainHandler: Handler
+
+    val updateChartDelayed = object : Runnable {
+        override fun run() {
+            menu?.let {
+                if(Model.isConnected) {
+                    var connectedDevice = menu!!.findItem(R.id.action_connectedDevice)
+                    var temperature = menu!!.findItem(R.id.action_temperature)
+                    var battery = menu!!.findItem(R.id.action_battery)
+                    connectedDevice.setTitle(Model.connectedTo)
+                    temperature.setTitle(Model.getTemperatureString())
+                    battery.setTitle(Model.getBatteryString())
+                    //Log.d("DISPLAYDATAACTIVITY", "Model keys:${Model.getDeviceKeys().toString()}")
+                }
+            }
+            mainHandler.postDelayed(this, 1000)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,10 +70,23 @@ class DisplayDataActivity : AppCompatActivity() {
             tab.text = tabArray[position]
         }.attach()
 
+        mainHandler = Handler(Looper.getMainLooper())
+
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu, menu)
+        this.menu = menu
         return super.onCreateOptionsMenu(menu)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        mainHandler.removeCallbacks(updateChartDelayed)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        mainHandler.post(updateChartDelayed)
     }
 }

@@ -11,32 +11,37 @@
         android:paddingHorizontal="15dp"
         android:orientation="vertical" >
 
-        <androidx.cardview.widget.CardView
-            android:id="@+id/card_view"
+        <com.example.mentalabexplore.SensorChart
+            android:id="@+id/gyroscope"
             android:layout_width="match_parent"
             android:layout_height="150dp"
             android:layout_gravity="center"
             android:layout_marginVertical="8dp"
             app:cardCornerRadius="8dp">
-        </androidx.cardview.widget.CardView>
+        </com.example.mentalabexplore.SensorChart>
 
-        <androidx.cardview.widget.CardView
-            android:id="@+id/card_view2"
+        <com.example.mentalabexplore.SensorChart
+            android:id="@+id/accelerometer"
             android:layout_width="match_parent"
             android:layout_height="150dp"
             android:layout_gravity="center"
             android:layout_marginVertical="8dp"
             app:cardCornerRadius="8dp">
-        </androidx.cardview.widget.CardView>
+        </com.example.mentalabexplore.SensorChart>
 
-        <androidx.cardview.widget.CardView
-            android:id="@+id/card_view3"
+        <com.example.mentalabexplore.SensorChart
+            android:id="@+id/magnetometer"
             android:layout_width="match_parent"
             android:layout_height="150dp"
             android:layout_gravity="center"
             android:layout_marginVertical="8dp"
             app:cardCornerRadius="8dp">
 
-        </androidx.cardview.widget.CardView>
+        </com.example.mentalabexplore.SensorChart>
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="150dp"
+            />
     </LinearLayout>
 </ScrollView>

@@ -5,6 +5,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <LinearLayout
+        android:id="@+id/exg_fragment_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingHorizontal="15dp"
@@ -12,7 +13,7 @@
         android:orientation="vertical" >
 
         <com.example.mentalabexplore.LineChart
-            android:id="@+id/card_view"
+            android:id="@+id/exg_channel_1"
             android:layout_width="match_parent"
             android:layout_height="150dp"
             android:layout_gravity="center"
@@ -21,7 +22,7 @@
         </com.example.mentalabexplore.LineChart>
 
         <com.example.mentalabexplore.LineChart
-            android:id="@+id/card_view2"
+            android:id="@+id/exg_channel_2"
             android:layout_width="match_parent"
             android:layout_height="150dp"
             android:layout_gravity="center"
@@ -30,34 +31,66 @@
         </com.example.mentalabexplore.LineChart>
 
 
-        <androidx.cardview.widget.CardView
-            android:id="@+id/card_view3"
+        <com.example.mentalabexplore.LineChart
+            android:id="@+id/exg_channel_3"
             android:layout_width="match_parent"
             android:layout_height="150dp"
             android:layout_gravity="center"
             android:layout_marginVertical="8dp"
             app:cardCornerRadius="8dp">
-        </androidx.cardview.widget.CardView>
+        </com.example.mentalabexplore.LineChart>
 
 
-        <androidx.cardview.widget.CardView
-            android:id="@+id/card_view4"
+        <com.example.mentalabexplore.LineChart
+            android:id="@+id/exg_channel_4"
             android:layout_width="match_parent"
             android:layout_height="150dp"
             android:layout_gravity="center"
             android:layout_marginVertical="8dp"
             app:cardCornerRadius="8dp">
-        </androidx.cardview.widget.CardView>
+        </com.example.mentalabexplore.LineChart>
 
 
-        <androidx.cardview.widget.CardView
-            android:id="@+id/card_view5"
+        <com.example.mentalabexplore.LineChart
+            android:id="@+id/exg_channel_5"
             android:layout_width="match_parent"
             android:layout_height="150dp"
             android:layout_gravity="center"
             android:layout_marginVertical="8dp"
             app:cardCornerRadius="8dp">
+        </com.example.mentalabexplore.LineChart>
 
-        </androidx.cardview.widget.CardView>
+        <com.example.mentalabexplore.LineChart
+            android:id="@+id/exg_channel_6"
+            android:layout_width="match_parent"
+            android:layout_height="150dp"
+            android:layout_gravity="center"
+            android:layout_marginVertical="8dp"
+            app:cardCornerRadius="8dp">
+        </com.example.mentalabexplore.LineChart>
+
+        <com.example.mentalabexplore.LineChart
+            android:id="@+id/exg_channel_7"
+            android:layout_width="match_parent"
+            android:layout_height="150dp"
+            android:layout_gravity="center"
+            android:layout_marginVertical="8dp"
+            app:cardCornerRadius="8dp">
+        </com.example.mentalabexplore.LineChart>
+
+        <com.example.mentalabexplore.LineChart
+            android:id="@+id/exg_channel_8"
+            android:layout_width="match_parent"
+            android:layout_height="150dp"
+            android:layout_gravity="center"
+            android:layout_marginVertical="8dp"
+            app:cardCornerRadius="8dp">
+        </com.example.mentalabexplore.LineChart>
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="150dp"
+            />
+
     </LinearLayout>
 </ScrollView>
