@@ -13,14 +13,26 @@ object Model {
     var isConnected = false
     var connectedTo = ""
     val maxElements = 100
+
+    val exgCutoff = 2000
+    val accCutoff = 5000
+    val gyroCutoff = 5000
+    val magCutoff = 100000
+
+    var refreshRate: Long = 50
+    var scale_y = 10.0f
+    var timeWindow = 20
     //var dataMax = 1.0f
 
     // This is only used for testing with random data points
     var dataAverage = 1.0f
     var visibleData: Queue<Float> = LinkedList<Float>()
 
-    var channelAverages: MutableList<Float> = mutableListOf<Float>(1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f)
-    var channelMaxes: MutableList<Float> = mutableListOf<Float>(1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f)
+    var channelAverages: MutableList<Float> = mutableListOf<Float>(1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f)
+    var channelMaxes: MutableList<Float> = mutableListOf<Float>(1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f)
+    var sensorMaxes: MutableList<Float> = mutableListOf<Float>(1.0f, 1.0f, 1.0f)
+    var sensorAverages: MutableList<Float> = mutableListOf<Float>(1.0f, 1.0f, 1.0f)
+    var sensorCutoffs: MutableList<Int> = mutableListOf<Int>(5000, 5000, 100000)
     var channelData: List<Queue<Float>> = listOf(LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>())
 
     lateinit var dataMap: Map<String, Queue<Float>>
@@ -50,29 +62,133 @@ object Model {
         dataMap = MentalabCodec.decode(stream)
     }
 
+    // TODO: Change the way cutoffs work, take average of last x vals
     fun insertDataFromDevice(s: String) {
-        var index = getChannelIndexFromString(s)
+        var index = getChannelIndexFromString(s)!!
         var newDataPoint = dataMap.get(s)?.poll()
         //Log.d("MODEL dataMap count", "For string $s: ${dataMap.get(s)?.count()}")
         dataMap.get(s)?.clear()
         //var newDataPoint = (Random.nextFloat() - 0.5f) * 4000
+        //if(Random.nextInt(100) == 1) newDataPoint = 1000000.0f //adds random noise instead
         newDataPoint?.let {
-            if(newDataPoint.absoluteValue > channelMaxes[index!!].absoluteValue) channelMaxes[index!!] = newDataPoint
-            if (channelData[index!!].size >= maxElements) {
-                var oldDatapoint = channelData[index].remove()
-                channelAverages[index!!] -= oldDatapoint / (channelData[index].size + 1)
+            var cutoff = 0
+            when {
+                index < 8 -> cutoff = exgCutoff;
+                index >= 8 && index < 11 -> cutoff = gyroCutoff;
+                index >= 11 && index < 14 -> cutoff = accCutoff;
+                index >= 14 -> cutoff = magCutoff;
+            }
+            var newMax = newDataPoint
+            if(index > 7 && index < 11) newMax = 0.0f
+            if(newDataPoint.absoluteValue > channelMaxes[index].absoluteValue){
+                if(channelMaxes[index].absoluteValue != 1.0f) {
+                    if ((newDataPoint - channelMaxes[index].absoluteValue).absoluteValue < cutoff) channelMaxes[index] = newDataPoint
+                }
+                else {
+                    channelMaxes[index] = newDataPoint
+                }
+            }
+
+            if (channelData[index].size >= maxElements) {
+                channelData[index].remove()
+                //channelAverages[index!!] -= oldDatapoint / (channelData[index].size + 1)
             }
             //var newDatapoint = Random.nextFloat() * 1000
 
+
             channelData[index].add(newDataPoint)
-            if (channelData[index].size < maxElements) {
-                // If we are here, our Queue hasn't reached full capacity yet
-                channelAverages[index!!] = 0.0f
-                for (e in channelData[index]) {
-                    channelAverages[index!!] += e / channelData[index].size
+            if(channelAverages[index] != 1.0f)
+            {
+                val diff = (channelAverages[index] - newDataPoint).absoluteValue
+                if(diff < cutoff) channelAverages[index] = (channelAverages[index] + newDataPoint)/2.0f
+            }
+            else {
+                channelAverages[index] = newDataPoint
+            }
+        }
+    }
+
+    // TODO: Change the way cutoffs work, take average of last x vals
+    fun insertExGDataFromDevice(s: String) {
+        var index = getChannelIndexFromString(s)!!
+        var newDataPoint = dataMap.get(s)?.poll()
+        //Log.d("MODEL dataMap count", "For string $s: ${dataMap.get(s)?.count()}")
+        dataMap.get(s)?.clear()
+        //var newDataPoint = (Random.nextFloat() - 0.5f) * 4000
+        //if(Random.nextInt(100) == 1) newDataPoint = 1000000.0f //adds random noise instead
+        newDataPoint?.let {
+            if(newDataPoint.absoluteValue > channelMaxes[index].absoluteValue){
+                if(channelMaxes[index].absoluteValue != 1.0f) {
+                    if ((newDataPoint - channelMaxes[index].absoluteValue).absoluteValue < exgCutoff) channelMaxes[index] = newDataPoint
                 }
-            } else {
-                channelAverages[index!!] += newDataPoint / maxElements
+                else {
+                    channelMaxes[index] = newDataPoint
+                }
+            }
+
+            if (channelData[index].size >= maxElements) {
+                channelData[index].remove()
+                //channelAverages[index!!] -= oldDatapoint / (channelData[index].size + 1)
+            }
+            //var newDatapoint = Random.nextFloat() * 1000
+
+
+            channelData[index].add(newDataPoint)
+            if(channelAverages[index] != 1.0f)
+            {
+                val diff = (channelAverages[index] - newDataPoint).absoluteValue
+                if(diff < exgCutoff) channelAverages[index] = (channelAverages[index] + newDataPoint)/2.0f
+            }
+            else {
+                channelAverages[index] = newDataPoint
+            }
+        }
+    }
+
+    fun insertSensorDataFromDevice(s: String) {
+        var index = getChannelIndexFromString(s)!!
+        var newDataPoint = dataMap.get(s)?.poll()
+        //Log.d("MODEL dataMap count", "For string $s: ${dataMap.get(s)?.count()}")
+        dataMap.get(s)?.clear()
+        //var newDataPoint = (Random.nextFloat() - 0.5f) * 4000
+        //if(Random.nextInt(100) == 1) newDataPoint = 1000000.0f //adds random noise instead
+        newDataPoint?.let {
+            var ind = -1
+            when {
+                index < 11 -> {
+                    ind = 0
+                }
+                index < 14 -> {
+                    ind = 1
+                }
+                else -> {
+                    ind = 2
+                }
+            }
+            if(newDataPoint.absoluteValue > sensorMaxes[ind].absoluteValue){
+                if(sensorMaxes[ind].absoluteValue != 1.0f) {
+                    if ((newDataPoint - sensorMaxes[ind].absoluteValue).absoluteValue < sensorCutoffs[ind]) sensorMaxes[ind] = newDataPoint
+                }
+                else {
+                    sensorMaxes[ind] = newDataPoint
+                }
+            }
+
+            if (channelData[index].size >= maxElements) {
+                channelData[index].remove()
+                //channelAverages[index!!] -= oldDatapoint / (channelData[index].size + 1)
+            }
+            //var newDatapoint = Random.nextFloat() * 1000
+
+
+            channelData[index].add(newDataPoint)
+            if(sensorAverages[ind] != 1.0f)
+            {
+                val diff = (sensorAverages[ind] - newDataPoint).absoluteValue
+                if(diff < sensorCutoffs[ind]) sensorAverages[ind] = (sensorAverages[ind] + newDataPoint)/2.0f
+            }
+            else {
+                sensorAverages[ind] = newDataPoint
             }
         }
     }
@@ -174,18 +290,16 @@ object Model {
 
     fun getTemperatureString(): String {
         if(!isConnected) return ""
-        Log.d("MODEL", "getTemperatureString: isConnected")
         var temp = dataMap.get("Temperature ")?.poll()
-        Log.d("MODEL", "getBatteryString: temp = ${temp}")
+        dataMap.get("Temperature ")?.clear()
         if(temp != null) return "${temp}°C"
         else return ""
     }
 
     fun getBatteryString(): String {
         if(!isConnected) return ""
-        Log.d("MODEL", "getBatteryString: isConnected")
         var bat = dataMap.get("Battery ")?.poll()
-        Log.d("MODEL", "getBatteryString: bat = ${bat}")
+        dataMap.get("Battery ")?.clear()
         if(bat != null) return "${bat}%"
         else return ""
     }
