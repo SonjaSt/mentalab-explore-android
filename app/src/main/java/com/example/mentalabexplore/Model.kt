@@ -6,22 +6,23 @@ import android.widget.Toast
 import com.mentalab.MentalabCodec
 import com.mentalab.MentalabCommands
 import java.util.*
+import java.util.concurrent.TimeUnit
 import kotlin.math.absoluteValue
 import kotlin.random.Random
 
 object Model {
     var isConnected = false
     var connectedTo = ""
-    val maxElements = 100
+    var maxElements = 100
 
     val exgCutoff = 2000
     val accCutoff = 5000
     val gyroCutoff = 5000
     val magCutoff = 100000
 
-    var refreshRate: Long = 50
-    var scale_y = 10.0f
-    var timeWindow = 20
+    var refreshRate: Long = 100
+    var scale_y = 20.0f
+    var timeWindow = 20 // in seconds
     //var dataMax = 1.0f
 
     // This is only used for testing with random data points
@@ -33,9 +34,17 @@ object Model {
     var sensorMaxes: MutableList<Float> = mutableListOf<Float>(1.0f, 1.0f, 1.0f)
     var sensorAverages: MutableList<Float> = mutableListOf<Float>(1.0f, 1.0f, 1.0f)
     var sensorCutoffs: MutableList<Int> = mutableListOf<Int>(5000, 5000, 100000)
+    var startTime: Long? = null
+    var lastTime: Long? = null
+    var timestamps: LinkedList<Long?> = LinkedList<Long?>()
     var channelData: List<Queue<Float>> = listOf(LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>())
 
     lateinit var dataMap: Map<String, Queue<Float>>
+
+    fun changeTimeWindow(newTime: Int) {
+        timeWindow = newTime
+        maxElements = newTime*1000 / refreshRate.toInt()
+    }
 
     fun scanDevices(applicationContext: Context): Set<String> {
         return MentalabCommands.scan()
@@ -69,7 +78,7 @@ object Model {
         //Log.d("MODEL dataMap count", "For string $s: ${dataMap.get(s)?.count()}")
         dataMap.get(s)?.clear()
         //var newDataPoint = (Random.nextFloat() - 0.5f) * 4000
-        //if(Random.nextInt(100) == 1) newDataPoint = 1000000.0f //adds random noise instead
+        if(Random.nextInt(100) == 1) newDataPoint = -500000.0f //adds random noise instead
         newDataPoint?.let {
             var cutoff = 0
             when {
@@ -78,6 +87,7 @@ object Model {
                 index >= 11 && index < 14 -> cutoff = accCutoff;
                 index >= 14 -> cutoff = magCutoff;
             }
+            if(index == 0) Log.d("DATAPOINT", "${newDataPoint}")
             var newMax = newDataPoint
             if(index > 7 && index < 11) newMax = 0.0f
             if(newDataPoint.absoluteValue > channelMaxes[index].absoluteValue){
@@ -91,12 +101,27 @@ object Model {
 
             if (channelData[index].size >= maxElements) {
                 channelData[index].remove()
+                if(index == 0) timestamps.remove()
                 //channelAverages[index!!] -= oldDatapoint / (channelData[index].size + 1)
             }
             //var newDatapoint = Random.nextFloat() * 1000
 
 
             channelData[index].add(newDataPoint)
+            if(index == 0) { // only add time for one channel
+                var t: Long = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis())
+                if (startTime == null) {
+                    startTime = t
+                    lastTime = 0
+                    timestamps.add(0)
+                }
+                t -= startTime!!
+                if (t != lastTime) {
+                    timestamps.add(t)
+                    lastTime = t
+                } else timestamps.add(null)
+                Log.d("TIME", t.toString())
+            }
             if(channelAverages[index] != 1.0f)
             {
                 val diff = (channelAverages[index] - newDataPoint).absoluteValue

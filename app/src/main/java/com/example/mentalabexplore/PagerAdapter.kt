@@ -84,7 +84,10 @@ class LineChart @JvmOverloads constructor(
         // (width/max_elements)    0              0
         // 0                       (1/scale_y)    (height/2) - (avg/scale_y)
         // 0                       0              1
-        val mVals: FloatArray = floatArrayOf((this.measuredWidth.toFloat()-paddingHorizontal)/Model.maxElements, 0.0f, paddingHorizontal, 0.0f, 1.0f/Model.scale_y, (this.measuredHeight.toFloat()/2) - (Model.getAverage(streamTag)/Model.scale_y), 0.0f, 0.0f, 1.0f)
+        val mVals: FloatArray = floatArrayOf(
+            (this.measuredWidth.toFloat()-paddingHorizontal)/Model.maxElements, 0.0f, paddingHorizontal,
+            0.0f, -1.0f/Model.scale_y, (this.measuredHeight.toFloat()/2) - (Model.getAverage(streamTag)/Model.scale_y),
+            0.0f, 0.0f, 1.0f)
         transform.setValues(mVals)
     }
 
@@ -96,14 +99,20 @@ class LineChart @JvmOverloads constructor(
         paint_text.textAlign = Paint.Align.RIGHT
         canvas?.drawText("ch${Model.getChannelIndexFromString(streamTag)}", paddingHorizontal-5.0f, avgY-5.0f, paint_text)
         paint_text.textAlign = Paint.Align.LEFT
-        canvas?.drawText("(${Model.scale_y.toInt()} uV)", paddingHorizontal+5.0f, 5.0f+paint_text.textSize, paint_text)
+        //canvas?.drawText("(\u00b1${(Model.scale_y/2.0f).toInt()} uV)", paddingHorizontal+5.0f, 5.0f+paint_text.textSize, paint_text)
+        canvas?.drawText("(+${(Model.scale_y/2.0f).toInt()} uV)", paddingHorizontal+5.0f, 5.0f+paint_text.textSize, paint_text)
+        canvas?.drawText("(-${(Model.scale_y/2.0f).toInt()} uV)", paddingHorizontal+5.0f, this.measuredHeight-5.0f, paint_text)
         canvas?.drawText("${Model.getAverage(streamTag)/Model.scale_y}", yAxisX+5.0f, avgY+5.0f+paint_text.textSize, paint_text)
         canvas?.drawLine(yAxisX, yAxisY1, yAxisX, yAxisY2, paint) // Vertical y-Axis
+        canvas?.drawLine(yAxisX, this.measuredHeight.toFloat(), this.measuredWidth.toFloat(), this.measuredHeight.toFloat(), paint)
 
         //val mVals: FloatArray = floatArrayOf(this.measuredWidth.toFloat()/Model.maxElements, 0.0f, 0.0f, 0.0f, 1.0f/scale_y, (this.measuredHeight.toFloat()/2) - (Model.getAverage(streamTag)/scale_y), 0.0f, 0.0f, 1.0f)
         var xNum = Model.getData(streamTag).size
         if(xNum < 1) xNum = Model.maxElements
-        val mVals: FloatArray = floatArrayOf((this.measuredWidth.toFloat()-paddingHorizontal)/xNum, 0.0f, paddingHorizontal, 0.0f, 1.0f/Model.scale_y, (this.measuredHeight.toFloat()/2) - (Model.getAverage(streamTag)/Model.scale_y), 0.0f, 0.0f, 1.0f)
+        val mVals: FloatArray = floatArrayOf(
+            (this.measuredWidth.toFloat()-paddingHorizontal)/xNum, 0.0f, paddingHorizontal,
+            0.0f, -1.0f/Model.scale_y, (this.measuredHeight.toFloat()/2) + (Model.getAverage(streamTag)/Model.scale_y),
+            0.0f, 0.0f, 1.0f)
         transform.setValues(mVals)
 
         var transPoints: FloatArray = FloatArray(Model.getData(streamTag).size*2)
@@ -155,6 +164,13 @@ class LineChart @JvmOverloads constructor(
             end_x = transPoints[i]
             end_y = transPoints[i+1]
             canvas?.drawLine(start_x, start_y, end_x, end_y, paint)
+            Model.timestamps[i/2]?.let{
+                var x = (i/2)*(this.measuredWidth.toFloat()-paddingHorizontal)/xNum + paddingHorizontal
+                Log.d("XVALS", "i: $i, size: ${Model.timestamps.size}, width: ${this.measuredWidth.toFloat()}")
+                canvas?.drawLine(x, this.measuredHeight.toFloat(), x, this.measuredHeight.toFloat()-5.0f, paint)
+                paint_text.textAlign = Paint.Align.CENTER
+                canvas?.drawText(it.toString(), x, this.measuredHeight.toFloat()-5.0f, paint_text)
+            }
             start_x = transPoints[i]
             start_y = transPoints[i+1]
         }
@@ -208,6 +224,13 @@ class SensorChart @JvmOverloads constructor(
     private val paint_blue = Paint().apply {
         color = 0xff0000ff.toInt() // this is fully opaque red
         strokeWidth = 2.0f
+    }
+
+    private val paint_text = Paint().apply {
+        color = 0xffaaaaaa.toInt()
+        strokeWidth = 2.0f
+        textAlign = Paint.Align.LEFT
+        textSize = 30.0f
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
@@ -301,6 +324,14 @@ class SensorChart @JvmOverloads constructor(
                 //canvas?.drawLine(yAxisX-5.0f, realZero, yAxisX+5.0f, realZero, paint)
             }
         }
+        var textWidth = paint_text.measureText(streamTag+"_X")
+        var lineSpace = textWidth/2.0f
+        canvas?.drawText(streamTag+"_X", this.measuredWidth.toFloat()-(textWidth+lineSpace)*3, paint_text.textSize+10.0f, paint_text)
+        canvas?.drawLine(this.measuredWidth.toFloat()-(textWidth+lineSpace)*2.0f-3.0f*lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, this.measuredWidth.toFloat()-(textWidth+lineSpace)*2.0f-lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, paint_red)
+        canvas?.drawText(streamTag+"_Y", this.measuredWidth.toFloat()-(textWidth+lineSpace)*2, paint_text.textSize+10.0f, paint_text)
+        canvas?.drawLine(this.measuredWidth.toFloat()-(textWidth+lineSpace)-3.0f*lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, this.measuredWidth.toFloat()-(textWidth+lineSpace)-lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, paint_green)
+        canvas?.drawText(streamTag+"_Z", this.measuredWidth.toFloat()-(textWidth+lineSpace), paint_text.textSize+10.0f, paint_text)
+        canvas?.drawLine(this.measuredWidth.toFloat()-3.0f*lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, this.measuredWidth.toFloat()-lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, paint_blue)
     }
 }
 
