@@ -21,20 +21,21 @@ class DisplayDataActivity : AppCompatActivity() {
     var menu: Menu? = null
     lateinit var mainHandler: Handler
 
-    val updateChartDelayed = object : Runnable {
+    val updateModel = object : Runnable {
         override fun run() {
             menu?.let {
-                if(Model.isConnected) {
-                    var connectedDevice = menu!!.findItem(R.id.action_connectedDevice)
-                    var temperature = menu!!.findItem(R.id.action_temperature)
-                    var battery = menu!!.findItem(R.id.action_battery)
-                    connectedDevice.setTitle(Model.connectedTo)
-                    temperature.setTitle(Model.getTemperatureString())
-                    battery.setTitle(Model.getBatteryString())
-                    //Log.d("DISPLAYDATAACTIVITY", "Model keys:${Model.getDeviceKeys().toString()}")
+                if(!Model.isConnected) {
+                    return@let
                 }
+                var connectedDevice = menu!!.findItem(R.id.action_connectedDevice)
+                var temperature = menu!!.findItem(R.id.action_temperature)
+                var battery = menu!!.findItem(R.id.action_battery)
+                connectedDevice.setTitle(Model.connectedTo)
+                temperature.setTitle(Model.getTemperatureString())
+                battery.setTitle(Model.getBatteryString())
             }
-            mainHandler.postDelayed(this, 1000)
+            Model.updateData()
+            mainHandler.postDelayed(this, Model.refreshRate)
         }
     }
 
@@ -71,7 +72,6 @@ class DisplayDataActivity : AppCompatActivity() {
         }.attach()
 
         mainHandler = Handler(Looper.getMainLooper())
-
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -82,11 +82,11 @@ class DisplayDataActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        mainHandler.removeCallbacks(updateChartDelayed)
+        mainHandler.removeCallbacks(updateModel)
     }
 
     override fun onResume() {
         super.onResume()
-        mainHandler.post(updateChartDelayed)
+        mainHandler.post(updateModel)
     }
 }

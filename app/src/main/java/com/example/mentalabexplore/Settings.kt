@@ -3,6 +3,8 @@ package com.example.mentalabexplore
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.Menu
 import android.view.View
@@ -12,6 +14,14 @@ import androidx.appcompat.widget.Toolbar
 import androidx.core.app.NavUtils
 
 class Settings : AppCompatActivity() {
+    lateinit var mainHandler: Handler
+    val updateModel = object : Runnable {
+        override fun run() {
+            Model.updateData()
+            mainHandler.postDelayed(this, Model.refreshRate)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
@@ -34,6 +44,18 @@ class Settings : AppCompatActivity() {
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
             spinner.adapter = adapter
         }
+
+        mainHandler = Handler(Looper.getMainLooper())
+    }
+
+    override fun onPause() {
+        super.onPause()
+        mainHandler.removeCallbacks(updateModel)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        mainHandler.post(updateModel)
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {

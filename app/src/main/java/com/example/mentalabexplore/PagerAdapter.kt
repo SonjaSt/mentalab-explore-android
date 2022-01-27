@@ -32,29 +32,31 @@ class DataPagerAdapter(fragmentActivity: FragmentActivity, val fragments:ArrayLi
     override fun createFragment(position: Int): Fragment = fragments[position]
 }
 
+// TODO LineChart and Sensorchart should probably both be children of a chart class as they share a substantial amount of variables and (possibly?) code
 class LineChart @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : CardView(context, attrs, defStyleAttr) {
+    // streamTag determines what data is display by the chart, i.e. "Channel_1", "Gyro_Y" etc.
     var streamTag: String = ""
 
     var paddingHorizontal = 60.0f
     //var paddingVertical = 20.0f
 
+    // Coordinates of the y- and x-axis
     var yAxisX = paddingHorizontal
     var yAxisY1 = 0.0f
     var yAxisY2 = yAxisY1
 
-    //var xAxisX1 = yAxisX
-    //var xAxisX2 = xAxisX1
-    //var xAxisY = yAxisY2
-
-    //var xStep = 10
+    var xAxisX1 = yAxisX
+    var xAxisX2 = xAxisX1
+    var xAxisY = yAxisY2
 
     var spacehorizontal = 0.0f
     var spacevertical = 0.0f
 
+    // transform holds the transformation matrix applied to the incoming datapoints
     var transform: Matrix = Matrix()
 
 
@@ -101,17 +103,22 @@ class LineChart @JvmOverloads constructor(
         paint_text.textAlign = Paint.Align.LEFT
         //canvas?.drawText("(\u00b1${(Model.scale_y/2.0f).toInt()} uV)", paddingHorizontal+5.0f, 5.0f+paint_text.textSize, paint_text)
         canvas?.drawText("(+${(Model.scale_y/2.0f).toInt()} uV)", paddingHorizontal+5.0f, 5.0f+paint_text.textSize, paint_text)
-        canvas?.drawText("(-${(Model.scale_y/2.0f).toInt()} uV)", paddingHorizontal+5.0f, this.measuredHeight-5.0f, paint_text)
-        canvas?.drawText("${Model.getAverage(streamTag)/Model.scale_y}", yAxisX+5.0f, avgY+5.0f+paint_text.textSize, paint_text)
+        canvas?.drawText("(-${(Model.scale_y/2.0f).toInt()} uV)", paddingHorizontal+5.0f, this.measuredHeight-20.0f-paint_text.textSize, paint_text)
+        //canvas?.drawText("${Model.getAverage(streamTag)}", yAxisX+5.0f, avgY+5.0f+paint_text.textSize, paint_text)
         canvas?.drawLine(yAxisX, yAxisY1, yAxisX, yAxisY2, paint) // Vertical y-Axis
         canvas?.drawLine(yAxisX, this.measuredHeight.toFloat(), this.measuredWidth.toFloat(), this.measuredHeight.toFloat(), paint)
 
         //val mVals: FloatArray = floatArrayOf(this.measuredWidth.toFloat()/Model.maxElements, 0.0f, 0.0f, 0.0f, 1.0f/scale_y, (this.measuredHeight.toFloat()/2) - (Model.getAverage(streamTag)/scale_y), 0.0f, 0.0f, 1.0f)
         var xNum = Model.getData(streamTag).size
         if(xNum < 1) xNum = Model.maxElements
-        val mVals: FloatArray = floatArrayOf(
+        var mVals: FloatArray = floatArrayOf(
             (this.measuredWidth.toFloat()-paddingHorizontal)/xNum, 0.0f, paddingHorizontal,
             0.0f, -1.0f/Model.scale_y, (this.measuredHeight.toFloat()/2) + (Model.getAverage(streamTag)/Model.scale_y),
+            0.0f, 0.0f, 1.0f)
+
+        mVals = floatArrayOf(
+            (this.measuredWidth.toFloat()-paddingHorizontal)/xNum, 0.0f, paddingHorizontal,
+            0.0f, -1.0f/(Model.scale_y/2.0f)*(this.measuredHeight.toFloat()/2.0f), Model.getAverage(streamTag)/(Model.scale_y/2.0f)*(this.measuredHeight.toFloat()/2.0f)+(this.measuredHeight.toFloat()/2.0f),
             0.0f, 0.0f, 1.0f)
         transform.setValues(mVals)
 
@@ -129,31 +136,6 @@ class LineChart @JvmOverloads constructor(
         var datapoints = Model.getData(streamTag)
         var start: Float? = null
         var end = 0.0f
-        /*
-        for((i, datapoint) in datapoints.withIndex()) {
-
-            end = datapoint
-
-            start?.let {
-                //Log.d("CURRENT STREAMTAG", streamTag)
-                var startY = yAxisY2-(start!!+Model.getMax(streamTag).absoluteValue)/(2.0f*Model.getMax(streamTag).absoluteValue) * spacevertical
-                var stopY = yAxisY2-(end!!+Model.getMax(streamTag).absoluteValue)/(2.0f*Model.getMax(streamTag).absoluteValue) * spacevertical
-                //Log.d("ONDRAW", "Start Y: $startY")
-                //Log.d("ONDRAW", "Stop Y: $stopY")
-                //Log.d("ONDRAW", "Y Axis Start Y: $yAxisY1")
-                //Log.d("ONDRAW", "Y Axis Stop Y: $yAxisY2")
-                //Log.d("ONDRAW", "DATAPOINT: $end")
-                canvas?.drawLine((i-1)*spacehorizontal/datapoints.size + paddingHorizontal, startY, i*spacehorizontal/datapoints.size + paddingHorizontal, stopY, paint)
-                //canvas?.drawLine(0.0f, 0.0f, this.measuredWidth.toFloat(), this.measuredHeight.toFloat(), paint)
-            }
-
-            if (i % xStep == 0 && i != 0) {
-                canvas?.drawLine((i-1)*spacehorizontal/datapoints.size + paddingHorizontal, xAxisY-5.0f, (i-1)*spacehorizontal/datapoints.size + paddingHorizontal, xAxisY+5.0f, paint)
-            }
-
-            start = datapoint
-        }
-        */
 
         var start_x = if (transPoints.size >= 2) transPoints[0] else 0.0f
         var start_y = if (transPoints.size >= 2) transPoints[1] else 0.0f
@@ -165,11 +147,13 @@ class LineChart @JvmOverloads constructor(
             end_y = transPoints[i+1]
             canvas?.drawLine(start_x, start_y, end_x, end_y, paint)
             Model.timestamps[i/2]?.let{
+                // Draw the ticks on the x-axis
                 var x = (i/2)*(this.measuredWidth.toFloat()-paddingHorizontal)/xNum + paddingHorizontal
                 Log.d("XVALS", "i: $i, size: ${Model.timestamps.size}, width: ${this.measuredWidth.toFloat()}")
-                canvas?.drawLine(x, this.measuredHeight.toFloat(), x, this.measuredHeight.toFloat()-5.0f, paint)
+                //canvas?.drawLine(x, this.measuredHeight.toFloat(), x, this.measuredHeight.toFloat()-5.0f, paint)
+                canvas?.drawLine(x, this.measuredHeight.toFloat(), x, 0.0f, paint_baseline)
                 paint_text.textAlign = Paint.Align.CENTER
-                canvas?.drawText(it.toString(), x, this.measuredHeight.toFloat()-5.0f, paint_text)
+                canvas?.drawText(Model.secondsToMinutes(it), x, this.measuredHeight.toFloat()-10.0f, paint_text)
             }
             start_x = transPoints[i]
             start_y = transPoints[i+1]
@@ -180,6 +164,7 @@ class LineChart @JvmOverloads constructor(
     }
 }
 
+// a lot of this is very similar to the Linechart class
 class SensorChart @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -231,6 +216,11 @@ class SensorChart @JvmOverloads constructor(
         strokeWidth = 2.0f
         textAlign = Paint.Align.LEFT
         textSize = 30.0f
+    }
+
+    private val paint_baseline = Paint().apply {
+        color = 0xffaaaaaa.toInt()
+        strokeWidth = 2.0f
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
@@ -300,19 +290,23 @@ class SensorChart @JvmOverloads constructor(
                     )
                     //canvas?.drawLine(0.0f, 0.0f, this.measuredWidth.toFloat(), this.measuredHeight.toFloat(), paint)
                 }
-                /*
+
                 if(tag.last() == 'X') {
-                    if (i % xStep == 0 && i != 0) {
-                        canvas?.drawLine(
-                            (i - 1) * spacehorizontal / datapoints.size + paddingHorizontal,
-                            xAxisY - 5.0f,
-                            (i - 1) * spacehorizontal / datapoints.size + paddingHorizontal,
-                            xAxisY + 5.0f,
-                            paint
+                    Model.timestamps[i]?.let {
+                        // Draw the ticks on the x-axis
+                        //var x = i * (this.measuredWidth.toFloat() - paddingHorizontal) / xNum + paddingHorizontal
+                        var x = i * spacehorizontal / Model.timestamps.size + paddingHorizontal // We can't divide through 0 here as this is only executed if there is at least one value in timestamps
+                        //canvas?.drawLine(x, xAxisY, x, xAxisY - 5.0f, paint_text)
+                        canvas?.drawLine(x, this.measuredHeight.toFloat(), x, 0.0f, paint_baseline)
+                        paint_text.textAlign = Paint.Align.CENTER
+                        canvas?.drawText(
+                            Model.secondsToMinutes(it), // it = Model.timestamps[i]
+                            x,
+                            xAxisY - 10.0f,
+                            paint_text
                         )
                     }
                 }
-                */
 
                 start = datapoint
             }
@@ -324,8 +318,10 @@ class SensorChart @JvmOverloads constructor(
                 //canvas?.drawLine(yAxisX-5.0f, realZero, yAxisX+5.0f, realZero, paint)
             }
         }
+
         var textWidth = paint_text.measureText(streamTag+"_X")
         var lineSpace = textWidth/2.0f
+        paint_text.textAlign = Paint.Align.LEFT
         canvas?.drawText(streamTag+"_X", this.measuredWidth.toFloat()-(textWidth+lineSpace)*3, paint_text.textSize+10.0f, paint_text)
         canvas?.drawLine(this.measuredWidth.toFloat()-(textWidth+lineSpace)*2.0f-3.0f*lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, this.measuredWidth.toFloat()-(textWidth+lineSpace)*2.0f-lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, paint_red)
         canvas?.drawText(streamTag+"_Y", this.measuredWidth.toFloat()-(textWidth+lineSpace)*2, paint_text.textSize+10.0f, paint_text)
@@ -335,49 +331,12 @@ class SensorChart @JvmOverloads constructor(
     }
 }
 
-class LineChart2 : CardView {
-    var paint: Paint = Paint().apply {
-        color = 0xffff0000.toInt()
-        strokeWidth = 2.0f
-    }
-
-    var startx = 5.0f
-    var starty = 5.0f
-    var endx = startx
-    var endy = 0.0f
-
-    var paddingHorizontal = 2*startx
-    var paddingVertical = 2*starty
-
-
-    constructor(context: Context, ) : super(context) {
-        endy = this.measuredHeight.toFloat() - 5.0f
-    }
-
-
-    override fun onDraw(canvas: Canvas?) {
-        super.onDraw(canvas)
-
-        canvas?.drawLine(startx, starty, endx, endy, paint)
-
-        var array : FloatArray
-        var randomY1 = Random.nextInt(this.measuredHeight).toFloat()
-        var randomY2 = Random.nextInt(this.measuredHeight).toFloat()
-        val numSteps = 10
-        for(i in (0..numSteps)) {
-            canvas?.drawLine(i * (this.measuredWidth/numSteps).toFloat(), randomY1, (i+1) * (this.measuredWidth/numSteps).toFloat(), randomY2, paint)
-            randomY1 = randomY2
-            randomY2 = Random.nextInt(this.measuredHeight).toFloat()
-        }
-    }
-}
-
-
 class ExgDataFragment : Fragment() {
 
     lateinit var mainHandler : Handler
 
     var channels: MutableList<LineChart> = mutableListOf()
+    var maxCharts = 8
 
 
     val updateChartDelayed = object : Runnable {
@@ -385,11 +344,10 @@ class ExgDataFragment : Fragment() {
             if(Model.isConnected) {
                 var activeChannels = Model.getActiveChannels()
                 if(activeChannels != null) {
-                    for (i in 1..8) {
+                    for (i in 1..maxCharts) {
                         if (activeChannels.contains("Channel_${i}")) {
                             //Log.d("Active channels", "Channel_${i-1}")
                             if (channels[i - 1].isGone) channels[i - 1].visibility = View.VISIBLE
-                            Model.insertDataFromDevice("Channel_${i}")
                             channels[i-1].invalidate()
                         }
                         else {
@@ -434,11 +392,6 @@ class ExgDataFragment : Fragment() {
             //Log.d("CHANNELS", "${channels[i-1].streamTag}, ID ${i}")
         }
 
-        for(i in channels)
-        {
-            //Log.d("Channel: ", i.streamTag)
-        }
-
         mainHandler = Handler(Looper.getMainLooper())
 
         return baseView
@@ -465,7 +418,6 @@ class SensorDataFragment : Fragment() {
     lateinit var gyroscope: SensorChart
     lateinit var accelerometer: SensorChart
     lateinit var magnetometer: SensorChart
-    var delay: Long = 0
 
     lateinit var mainHandler: Handler
 
@@ -473,9 +425,6 @@ class SensorDataFragment : Fragment() {
         override fun run() {
             if(Model.isConnected) {
                 if(Model.isGyroscopeActive()) {
-                    Model.insertSensorDataFromDevice("Gyro_X")
-                    Model.insertSensorDataFromDevice("Gyro_Y")
-                    Model.insertSensorDataFromDevice("Gyro_Z")
                     if(!gyroscope.isVisible) gyroscope.visibility = View.VISIBLE
                     gyroscope.invalidate()
                 }
@@ -484,9 +433,6 @@ class SensorDataFragment : Fragment() {
                 }
 
                 if(Model.isAccelerometerActive()) {
-                    Model.insertSensorDataFromDevice("Acc_X")
-                    Model.insertSensorDataFromDevice("Acc_Y")
-                    Model.insertSensorDataFromDevice("Acc_Z")
                     if(!accelerometer.isVisible) accelerometer.visibility = View.VISIBLE
                     accelerometer.invalidate()
                 }
@@ -495,9 +441,6 @@ class SensorDataFragment : Fragment() {
                 }
 
                 if(Model.isAccelerometerActive()) {
-                    Model.insertSensorDataFromDevice("Mag_X")
-                    Model.insertSensorDataFromDevice("Mag_Y")
-                    Model.insertSensorDataFromDevice("Mag_Z")
                     if(!magnetometer.isVisible) magnetometer.visibility = View.VISIBLE
                     magnetometer.invalidate()
                 }
