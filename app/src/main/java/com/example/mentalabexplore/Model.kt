@@ -2,22 +2,15 @@ package com.example.mentalabexplore
 
 import android.content.Context
 import android.util.Log
-import android.widget.Toast
 import com.mentalab.MentalabCodec
 import com.mentalab.MentalabCommands
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.math.absoluteValue
-import kotlin.random.Random
 
 object Model {
     var isConnected = false
     var connectedTo = ""
-
-    val exgCutoff = 2000
-    val accCutoff = 5000
-    val gyroCutoff = 5000
-    val magCutoff = 100000
 
     val keyGyro = "Gyro"
     val keyMag = "Mag"
@@ -26,15 +19,10 @@ object Model {
     val keyTemperature = "Temperature"
     val keyBattery = "Battery"
 
-    var refreshRate: Long = 100
-    var scale_y = 2000.0f // range in uV
+    var refreshRate: Long = 100 // internal refresh rate, used when scheduling chart updates
+    var range_y = 2000.0f // range in uV
     var timeWindow = 10 // in seconds
-    var maxElements = timeWindow*1000 / refreshRate.toInt()
-    //var dataMax = 1.0f
-
-    // This is only used for testing with random data points
-    var dataAverage = 1.0f
-    var visibleData: Queue<Float> = LinkedList<Float>()
+    var maxElements = timeWindow*1000 / refreshRate.toInt() // max elements to be drawn
 
     var batteryVals: LinkedList<Float> = LinkedList<Float>()
     var temperatureVals: LinkedList<Float> = LinkedList<Float>()
@@ -42,10 +30,10 @@ object Model {
     var channelMaxes: MutableList<Float> = mutableListOf<Float>(1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f)
     var sensorMaxes: MutableList<Float> = mutableListOf<Float>(1.0f, 1.0f, 1.0f)
     var sensorAverages: MutableList<Float> = mutableListOf<Float>(1.0f, 1.0f, 1.0f)
-    var sensorCutoffs: MutableList<Int> = mutableListOf<Int>(5000, 5000, 100000)
     var startTime: Long? = null
     var lastTime: Long? = null
     var timestamps: LinkedList<Long?> = LinkedList<Long?>()
+    // channelData holds *all* channel data (ExG and sensors)
     var channelData: List<LinkedList<Float>> = listOf(LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>())
 
     lateinit var dataMap: Map<String, Queue<Float>>
@@ -80,106 +68,84 @@ object Model {
         dataMap = MentalabCodec.decode(stream)
     }
 
-    // TODO: The device sometimes sends out nonsensical values after turning it on (in my tests a bunch of values around 400000, this completely messes with the average and cutoffs and breaks the visualization - though idk what to do about this
+    // TODO merge insertDataFromDevice and insertSensorDataFromDevice
+    // The reason they're separate right now is because the sensor channels share a common average and max
+    // TODO: The device sometimes sends out nonsensical values after turning it on (in my tests a bunch of values around 400000)
+    // This could mess with the average for a while when the app is started
     fun insertDataFromDevice(s: String) {
         var index = getChannelIndexFromString(s)!!
         var newDataPoint = dataMap.get(s)?.poll()
+
         if(newDataPoint == null) {
             if(channelData[index].isEmpty()) newDataPoint = 0.0f // Emergency dummy value to make sure our timestamps don't go out of sync
             else newDataPoint = channelData[index].last
         }
-        //Log.d("MODEL dataMap count", "For string $s: ${dataMap.get(s)?.count()}")
+
         dataMap.get(s)?.clear()
-        //var newDataPoint = (Random.nextFloat() - 0.5f) * 4000
-        //if(Random.nextInt(100) == 1) newDataPoint = -500000.0f //adds random noise instead
-        var cutoff = 0
-        when {
-            index < 8 -> cutoff = exgCutoff;
-            index >= 8 && index < 11 -> cutoff = gyroCutoff;
-            index >= 11 && index < 14 -> cutoff = accCutoff;
-            index >= 14 -> cutoff = magCutoff;
-        }
-        if(index == 0) Log.d("DATAPOINT", "${newDataPoint}")
-        var newMax = newDataPoint
-        if(index > 7 && index < 11) newMax = 0.0f
         if(newDataPoint!!.absoluteValue > channelMaxes[index].absoluteValue){
-            if(channelMaxes[index].absoluteValue != 1.0f) {
-                if ((newDataPoint - channelMaxes[index].absoluteValue).absoluteValue < cutoff) channelMaxes[index] = newDataPoint
-            }
-            else {
-                channelMaxes[index] = newDataPoint!!
-            }
+            channelMaxes[index] = newDataPoint
         }
 
+        var removed: Float? = null
         if (channelData[index].size >= maxElements) {
-            channelData[index].remove()
-            //channelAverages[index!!] -= oldDatapoint / (channelData[index].size + 1)
+            removed = channelData[index].remove()
         }
-        //var newDatapoint = Random.nextFloat() * 1000
-
 
         channelData[index].add(newDataPoint)
-        if(channelAverages[index] != 1.0f)
-        {
-            val diff = (channelAverages[index] - newDataPoint).absoluteValue
-            if(diff < cutoff) channelAverages[index] = (channelAverages[index] + newDataPoint)/2.0f
-        }
-        else {
-            channelAverages[index] = newDataPoint
-        }
 
+        if(channelAverages[index] == 1.0f) channelAverages[index] == newDataPoint
+        if(removed == null) {
+            var avg = 0.0f
+            for (a in channelData[index])
+                avg += a
+            if(!channelData[index].isEmpty()) avg /= channelData[index].size
+            channelAverages[index] = avg
+        }
+        else channelAverages[index] = channelAverages[index] + newDataPoint / channelData[index].size - removed / channelData[index].size
+
+        if(index == 0) Log.d("AVG", "${channelAverages[index]}")
+        if(index == 0) Log.d("DATAPOINT", "${newDataPoint}")
     }
 
-    // TODO change so old values get copied over
     fun insertSensorDataFromDevice(s: String) {
         var index = getChannelIndexFromString(s)!!
         var newDataPoint = dataMap.get(s)?.poll()
+
         if(newDataPoint == null) {
             if(channelData[index].isEmpty()) newDataPoint = 0.0f // Emergency dummy value to make sure our timestamps don't go out of sync
             else newDataPoint = channelData[index].last
         }
-        if (newDataPoint == null) Log.d("MODEL", "Sensor datapoint is null!")
-        //Log.d("MODEL dataMap count", "For string $s: ${dataMap.get(s)?.count()}")
         dataMap.get(s)?.clear()
-        //var newDataPoint = (Random.nextFloat() - 0.5f) * 4000
-        //if(Random.nextInt(100) == 1) newDataPoint = 1000000.0f //adds random noise instead
+
         var ind = -1
         when {
-            index < 11 -> {
-                ind = 0
-            }
-            index < 14 -> {
-                ind = 1
-            }
-            else -> {
-                ind = 2
-            }
+            index < 11 -> { ind = 0 }
+            index < 14 -> { ind = 1 }
+            else -> { ind = 2 }
         }
+
         if(newDataPoint!!.absoluteValue > sensorMaxes[ind].absoluteValue){
-            if(sensorMaxes[ind].absoluteValue != 1.0f) {
-                if ((newDataPoint - sensorMaxes[ind].absoluteValue).absoluteValue < sensorCutoffs[ind]) sensorMaxes[ind] = newDataPoint
-            }
-            else {
-                sensorMaxes[ind] = newDataPoint
-            }
+            sensorMaxes[ind] = newDataPoint
         }
 
+        var removed: Float? = null
         if (channelData[index].size >= maxElements) {
-            channelData[index].remove()
-            //channelAverages[index!!] -= oldDatapoint / (channelData[index].size + 1)
+            removed = channelData[index].remove()
         }
-        //var newDatapoint = Random.nextFloat() * 1000
-
 
         channelData[index].add(newDataPoint)
-        if(sensorAverages[ind] != 1.0f)
-        {
-            val diff = (sensorAverages[ind] - newDataPoint).absoluteValue
-            if(diff < sensorCutoffs[ind]) sensorAverages[ind] = (sensorAverages[ind] + newDataPoint)/2.0f
+
+        // Note: the sensor averages are pretty useless, so I mimic the behaviour for the ExG data
+        // The average ends up being the average over all axes
+        if(sensorAverages[ind] == 1.0f) sensorAverages[ind] == newDataPoint
+        if(removed == null) {
+            var avg = 0.0f
+            for (a in channelData[index])
+                avg += a
+            if(!channelData[index].isEmpty()) avg /= channelData[index].size
+            sensorAverages[ind] = avg
         }
-        else {
-            sensorAverages[ind] = newDataPoint
-        }
+        else sensorAverages[ind] = sensorAverages[ind] + newDataPoint / channelData[index].size - removed / channelData[index].size
     }
 
     // I should use a map, I know
@@ -295,25 +261,6 @@ object Model {
         return "$battery%"
     }
 
-    fun insertTestData() {
-        if(visibleData.size>=maxElements) {
-            var oldDatapoint = visibleData.remove()
-            dataAverage -= oldDatapoint / (visibleData.size + 1)
-        }
-        var newDatapoint = Random.nextFloat()*1000
-        visibleData.add(newDatapoint)
-        if(visibleData.size < maxElements) {
-            // If we are here, our Queue hasn't reached full capacity yet
-            dataAverage = 0.0f
-            for(e in visibleData) {
-                dataAverage += e/visibleData.size
-            }
-        }
-        else {
-            dataAverage += newDatapoint/maxElements
-        }
-    }
-
     fun secondsToMinutes(s: Long): String {
         var mins = ""
         var secs = ""
@@ -321,6 +268,15 @@ object Model {
         if(s%60 < 10) secs = "0${s%60}" else secs = "${s%60}"
 
         return "$mins:$secs"
+    }
+
+    fun scaleToVolts(scale: Float): String {
+        if(scale >= 2000.0f) return "${(scale/2000.0f).toInt()} mV"
+        else return "${(scale/2.0f).toInt()} uV"
+    }
+
+    fun scaleToVolts(): String {
+        return scaleToVolts(range_y)
     }
 
     fun updateData() {

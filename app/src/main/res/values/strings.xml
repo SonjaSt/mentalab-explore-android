@@ -33,4 +33,15 @@
     <string name="fun_text">Fun text</string>
     <string name="cancel">Cancel</string>
     <string name="rescan">Rescan</string>
+    <string name="ch2">ch2</string>
+    <string name="ch1">ch1</string>
+    <string name="ch3">ch3</string>
+    <string name="ch4">ch4</string>
+    <string name="ch5">ch5</string>
+    <string name="ch6">ch6</string>
+    <string name="ch7">ch7</string>
+    <string name="ch8">ch8</string>
+    <string name="g">G</string>
+    <string name="a">A</string>
+    <string name="m">M</string>
 </resources>

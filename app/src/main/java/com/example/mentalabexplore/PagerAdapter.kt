@@ -1,7 +1,6 @@
 package com.example.mentalabexplore
 
 import android.content.Context
-import android.content.res.Resources
 import android.graphics.Canvas
 import android.graphics.Matrix
 import android.graphics.Paint
@@ -9,30 +8,25 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.AttributeSet
-import android.util.Log
 import android.view.*
-import android.widget.Button
-import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.core.view.isGone
-import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import kotlin.math.absoluteValue
-import kotlin.random.Random
 
 class DataPagerAdapter(fragmentActivity: FragmentActivity, val fragments:ArrayList<Fragment>) : FragmentStateAdapter(fragmentActivity) {
 
-    override fun getItemCount(): Int = fragments.size   // Note: This should always be 3
+    override fun getItemCount(): Int = fragments.size   // Note: This should always be 3 (3 tabs)
 
     override fun createFragment(position: Int): Fragment = fragments[position]
 }
 
-// TODO LineChart and Sensorchart should probably both be children of a chart class as they share a substantial amount of variables and (possibly?) code
+// TODO LineChart and Sensorchart should probably both be children of a chart class as they
+//  share a substantial amount of variables and (possibly?) code
 class LineChart @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -41,13 +35,13 @@ class LineChart @JvmOverloads constructor(
     // streamTag determines what data is display by the chart, i.e. "Channel_1", "Gyro_Y" etc.
     var streamTag: String = ""
 
-    var paddingHorizontal = 60.0f
-    //var paddingVertical = 20.0f
+    var paddingHorizontal = 40.0f
+    var paddingVertical = 60.0f
 
     // Coordinates of the y- and x-axis
     var yAxisX = paddingHorizontal
-    var yAxisY1 = 0.0f
-    var yAxisY2 = yAxisY1
+    var yAxisY1 = paddingVertical
+    var yAxisY2 = yAxisY1 // Can only be set properly on layout change
 
     var xAxisX1 = yAxisX
     var xAxisX2 = xAxisX1
@@ -77,65 +71,68 @@ class LineChart @JvmOverloads constructor(
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
-        yAxisY2 = this.measuredHeight.toFloat()
-        //xAxisX2 = this.measuredWidth.toFloat() - paddingHorizontal
-        //xAxisY = yAxisY2
-        //spacehorizontal = this.measuredWidth - 2*paddingHorizontal
-        //spacevertical = this.measuredHeight - 4*paddingVertical
+        yAxisY2 = this.measuredHeight.toFloat() - paddingVertical
+        xAxisX2 = this.measuredWidth.toFloat()
+        xAxisY = yAxisY2
 
-        // (width/max_elements)    0              0
-        // 0                       (1/scale_y)    (height/2) - (avg/scale_y)
-        // 0                       0              1
-        val mVals: FloatArray = floatArrayOf(
-            (this.measuredWidth.toFloat()-paddingHorizontal)/Model.maxElements, 0.0f, paddingHorizontal,
-            0.0f, -1.0f/Model.scale_y, (this.measuredHeight.toFloat()/2) - (Model.getAverage(streamTag)/Model.scale_y),
+        // Available height and width for the chart
+        spacehorizontal = this.measuredWidth - paddingHorizontal // only pad the left side
+        spacevertical = this.measuredHeight - 2*paddingVertical
+
+        val maxY = Model.range_y/2.0f
+        val mVals = floatArrayOf(
+            spacehorizontal/Model.maxElements, 0.0f, paddingHorizontal,
+            0.0f, -1.0f/maxY*(spacevertical/2.0f), Model.getAverage(streamTag)/maxY*(spacevertical/2.0f)+(spacevertical/2.0f)+paddingVertical,
             0.0f, 0.0f, 1.0f)
+
         transform.setValues(mVals)
     }
 
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
 
-        val avgY = (yAxisY2-yAxisY1)/2
-        canvas?.drawLine(0.0f, avgY, this.measuredWidth.toFloat(), avgY, paint_baseline) // Horizontal baseline
-        paint_text.textAlign = Paint.Align.RIGHT
-        canvas?.drawText("ch${Model.getChannelIndexFromString(streamTag)}", paddingHorizontal-5.0f, avgY-5.0f, paint_text)
+        val avgY = (yAxisY2-yAxisY1)/2 + paddingVertical
+        canvas?.drawLine(xAxisX1, avgY, xAxisX2, avgY, paint_baseline) // Horizontal baseline
+
         paint_text.textAlign = Paint.Align.LEFT
-        //canvas?.drawText("(\u00b1${(Model.scale_y/2.0f).toInt()} uV)", paddingHorizontal+5.0f, 5.0f+paint_text.textSize, paint_text)
-        canvas?.drawText("(+${(Model.scale_y/2.0f).toInt()} uV)", paddingHorizontal+5.0f, 5.0f+paint_text.textSize, paint_text)
-        canvas?.drawText("(-${(Model.scale_y/2.0f).toInt()} uV)", paddingHorizontal+5.0f, this.measuredHeight-20.0f-paint_text.textSize, paint_text)
-        //canvas?.drawText("${Model.getAverage(streamTag)}", yAxisX+5.0f, avgY+5.0f+paint_text.textSize, paint_text)
-        canvas?.drawLine(yAxisX, yAxisY1, yAxisX, yAxisY2, paint) // Vertical y-Axis
-        canvas?.drawLine(yAxisX, this.measuredHeight.toFloat(), this.measuredWidth.toFloat(), this.measuredHeight.toFloat(), paint)
+        //canvas?.drawText("(+${(Model.scale_y/2.0f).toInt()} uV)", paddingHorizontal+5.0f, yAxisY1+5.0f+paint_text.textSize, paint_text)
+        canvas?.drawText("(+${Model.scaleToVolts()})", yAxisX+5.0f, yAxisY1+5.0f+paint_text.textSize, paint_text)
+        canvas?.drawText("(-${Model.scaleToVolts()})", yAxisX+5.0f, yAxisY2-5.0f-paint_text.textSize, paint_text)
+
+        canvas?.drawLine(yAxisX, yAxisY1, yAxisX, yAxisY2, paint) // y-Axis
+        canvas?.drawLine(xAxisX1, xAxisY, xAxisX2, xAxisY, paint) // x-Axis
 
         //val mVals: FloatArray = floatArrayOf(this.measuredWidth.toFloat()/Model.maxElements, 0.0f, 0.0f, 0.0f, 1.0f/scale_y, (this.measuredHeight.toFloat()/2) - (Model.getAverage(streamTag)/scale_y), 0.0f, 0.0f, 1.0f)
         var xNum = Model.getData(streamTag).size
         if(xNum < 1) xNum = Model.maxElements
-        var mVals: FloatArray = floatArrayOf(
-            (this.measuredWidth.toFloat()-paddingHorizontal)/xNum, 0.0f, paddingHorizontal,
-            0.0f, -1.0f/Model.scale_y, (this.measuredHeight.toFloat()/2) + (Model.getAverage(streamTag)/Model.scale_y),
-            0.0f, 0.0f, 1.0f)
 
-        mVals = floatArrayOf(
-            (this.measuredWidth.toFloat()-paddingHorizontal)/xNum, 0.0f, paddingHorizontal,
-            0.0f, -1.0f/(Model.scale_y/2.0f)*(this.measuredHeight.toFloat()/2.0f), Model.getAverage(streamTag)/(Model.scale_y/2.0f)*(this.measuredHeight.toFloat()/2.0f)+(this.measuredHeight.toFloat()/2.0f),
+        val maxY = Model.range_y/2.0f // scale is given as the range of all points, ie 2000
+
+        // (width/max_elements)    0              padding_left
+        // 0                       (-1/scale_y)*(height/2)    (avg/scale_y)*(height/2) + (height/2) + padding_top
+        // 0                       0              1
+
+        /*
+        var mVals = floatArrayOf(
+            (spacehorizontal)/xNum, 0.0f, paddingHorizontal,
+            0.0f, -1.0f/maxY*(spacevertical/2.0f), Model.getAverage(streamTag)/maxY*(spacevertical/2.0f)+(spacevertical/2.0f)+paddingVertical,
+            0.0f, 0.0f, 1.0f)
+        transform.setValues(mVals)
+         */
+
+        var mVals = floatArrayOf(
+            (spacehorizontal)/xNum, 0.0f, paddingHorizontal,
+            0.0f, -1.0f/Model.range_y*spacevertical, Model.getAverage(streamTag)/Model.range_y*spacevertical+(spacevertical/2.0f)+paddingVertical,
             0.0f, 0.0f, 1.0f)
         transform.setValues(mVals)
 
-        var transPoints: FloatArray = FloatArray(Model.getData(streamTag).size*2)
-        //Log.d("ONDRAW", "streamtag: $streamTag")
         //Make an array of points for the transformation
+        var transPoints: FloatArray = FloatArray(Model.getData(streamTag).size*2)
         for((i, datapoint) in Model.getData(streamTag).withIndex()) {
             transPoints.set(i*2, i.toFloat())
             transPoints.set(i*2+1, datapoint)
         }
         transform.mapPoints(transPoints)
-
-        //canvas?.drawLine(xAxisX1, xAxisY, xAxisX2, xAxisY, paint)
-
-        var datapoints = Model.getData(streamTag)
-        var start: Float? = null
-        var end = 0.0f
 
         var start_x = if (transPoints.size >= 2) transPoints[0] else 0.0f
         var start_y = if (transPoints.size >= 2) transPoints[1] else 0.0f
@@ -148,12 +145,10 @@ class LineChart @JvmOverloads constructor(
             canvas?.drawLine(start_x, start_y, end_x, end_y, paint)
             Model.timestamps[i/2]?.let{
                 // Draw the ticks on the x-axis
-                var x = (i/2)*(this.measuredWidth.toFloat()-paddingHorizontal)/xNum + paddingHorizontal
-                Log.d("XVALS", "i: $i, size: ${Model.timestamps.size}, width: ${this.measuredWidth.toFloat()}")
-                //canvas?.drawLine(x, this.measuredHeight.toFloat(), x, this.measuredHeight.toFloat()-5.0f, paint)
-                canvas?.drawLine(x, this.measuredHeight.toFloat(), x, 0.0f, paint_baseline)
+                var x = (i/2)*(spacehorizontal)/xNum + paddingHorizontal
+                canvas?.drawLine(x, xAxisY+5.0f, x, xAxisY-5.0f, paint_baseline)
                 paint_text.textAlign = Paint.Align.CENTER
-                canvas?.drawText(Model.secondsToMinutes(it), x, this.measuredHeight.toFloat()-10.0f, paint_text)
+                canvas?.drawText(Model.secondsToMinutes(it), x, xAxisY+10.0f+paint_text.textSize, paint_text) // it = Model.timestamps[i/2]
             }
             start_x = transPoints[i]
             start_y = transPoints[i+1]
@@ -336,7 +331,8 @@ class ExgDataFragment : Fragment() {
     lateinit var mainHandler : Handler
 
     var channels: MutableList<LineChart> = mutableListOf()
-    var maxCharts = 8
+    var containers: MutableList<LinearLayout> = mutableListOf()
+    val maxCharts = 8
 
 
     val updateChartDelayed = object : Runnable {
@@ -347,23 +343,25 @@ class ExgDataFragment : Fragment() {
                     for (i in 1..maxCharts) {
                         if (activeChannels.contains("Channel_${i}")) {
                             //Log.d("Active channels", "Channel_${i-1}")
-                            if (channels[i - 1].isGone) channels[i - 1].visibility = View.VISIBLE
+                            if (containers[i - 1].isGone) containers[i - 1].visibility = View.VISIBLE
                             channels[i-1].invalidate()
                         }
                         else {
-                            if (channels[i - 1].isVisible) channels[i - 1].visibility = View.GONE
+                            if (containers[i - 1].isVisible) containers[i - 1].visibility = View.GONE
                         }
                     }
                 }
                 else {
-                    for(e in channels) {
-                        if(e.isVisible) e.visibility = View.GONE
+                    // If no channels are active, don't draw anything
+                    for(c in containers) {
+                        if(c.isVisible) c.visibility = View.GONE
                     }
                 }
             }
             else {
-                for(e in channels) {
-                    if(e.isVisible) e.visibility = View.GONE
+                // If no device is connected, don't draw anything
+                for(c in containers) {
+                    if(c.isVisible) c.visibility = View.GONE
                 }
             }
             //mainHandler.post(this)
@@ -378,18 +376,30 @@ class ExgDataFragment : Fragment() {
     ): View? {
         val baseView = inflater.inflate(R.layout.exg_fragment, container, false)
 
+        // Find channels and their containers
+        // I realize this is pretty long and it'd be better to add charts programmatically,
+        // but I had some trouble with that and thought it wasn't too important since the
+        // amount of channels doesn't exceed 8
         channels.add(baseView.findViewById<LineChart>(R.id.exg_channel_1))
+        containers.add(baseView.findViewById<LinearLayout>(R.id.exg_channel_container_1))
         channels.add(baseView.findViewById<LineChart>(R.id.exg_channel_2))
+        containers.add(baseView.findViewById<LinearLayout>(R.id.exg_channel_container_2))
         channels.add(baseView.findViewById<LineChart>(R.id.exg_channel_3))
+        containers.add(baseView.findViewById<LinearLayout>(R.id.exg_channel_container_3))
         channels.add(baseView.findViewById<LineChart>(R.id.exg_channel_4))
+        containers.add(baseView.findViewById<LinearLayout>(R.id.exg_channel_container_4))
         channels.add(baseView.findViewById<LineChart>(R.id.exg_channel_5))
+        containers.add(baseView.findViewById<LinearLayout>(R.id.exg_channel_container_5))
         channels.add(baseView.findViewById<LineChart>(R.id.exg_channel_6))
+        containers.add(baseView.findViewById<LinearLayout>(R.id.exg_channel_container_6))
         channels.add(baseView.findViewById<LineChart>(R.id.exg_channel_7))
+        containers.add(baseView.findViewById<LinearLayout>(R.id.exg_channel_container_7))
         channels.add(baseView.findViewById<LineChart>(R.id.exg_channel_8))
+        containers.add(baseView.findViewById<LinearLayout>(R.id.exg_channel_container_8))
 
+        // Add a tag to every channel so we know what data to draw
         for(i in 1..8){
             channels[i-1].streamTag = "Channel_${i}"
-            //Log.d("CHANNELS", "${channels[i-1].streamTag}, ID ${i}")
         }
 
         mainHandler = Handler(Looper.getMainLooper())
@@ -413,11 +423,17 @@ class ExgDataFragment : Fragment() {
 
 }
 
+// This class is very similar to the ExG Fragment (and they should probably share a common parent
+// class...)
 class SensorDataFragment : Fragment() {
 
     lateinit var gyroscope: SensorChart
     lateinit var accelerometer: SensorChart
     lateinit var magnetometer: SensorChart
+
+    lateinit var gyroContainer: LinearLayout
+    lateinit var accContainer: LinearLayout
+    lateinit var magContainer: LinearLayout
 
     lateinit var mainHandler: Handler
 
@@ -425,33 +441,33 @@ class SensorDataFragment : Fragment() {
         override fun run() {
             if(Model.isConnected) {
                 if(Model.isGyroscopeActive()) {
-                    if(!gyroscope.isVisible) gyroscope.visibility = View.VISIBLE
+                    if(!gyroContainer.isVisible) gyroContainer.visibility = View.VISIBLE
                     gyroscope.invalidate()
                 }
                 else {
-                    if(gyroscope.isVisible) gyroscope.visibility = View.GONE
+                    if(gyroContainer.isVisible) gyroContainer.visibility = View.GONE
                 }
 
                 if(Model.isAccelerometerActive()) {
-                    if(!accelerometer.isVisible) accelerometer.visibility = View.VISIBLE
+                    if(!accContainer.isVisible) accContainer.visibility = View.VISIBLE
                     accelerometer.invalidate()
                 }
                 else {
-                    if(accelerometer.isVisible) accelerometer.visibility = View.GONE
+                    if(accContainer.isVisible) accContainer.visibility = View.GONE
                 }
 
-                if(Model.isAccelerometerActive()) {
-                    if(!magnetometer.isVisible) magnetometer.visibility = View.VISIBLE
+                if(Model.isMagnetometerActive()) {
+                    if(!magContainer.isVisible) magContainer.visibility = View.VISIBLE
                     magnetometer.invalidate()
                 }
                 else {
-                    if(magnetometer.isVisible) magnetometer.visibility = View.GONE
+                    if(magContainer.isVisible) magContainer.visibility = View.GONE
                 }
             }
             else {
-                if(gyroscope.isVisible) gyroscope.visibility = View.GONE
-                if(accelerometer.isVisible) accelerometer.visibility = View.GONE
-                if(magnetometer.isVisible) magnetometer.visibility = View.GONE
+                if(gyroContainer.isVisible) gyroContainer.visibility = View.GONE
+                if(accContainer.isVisible) accContainer.visibility = View.GONE
+                if(magContainer.isVisible) magContainer.visibility = View.GONE
             }
 
             //mainHandler.post(this)
@@ -467,8 +483,11 @@ class SensorDataFragment : Fragment() {
         val baseview = inflater.inflate(R.layout.sensors_fragment, container, false)
 
         gyroscope = baseview.findViewById<SensorChart>(R.id.gyroscope)
+        gyroContainer = baseview.findViewById<LinearLayout>(R.id.gyro_channel_container)
         accelerometer = baseview.findViewById<SensorChart>(R.id.accelerometer)
+        accContainer = baseview.findViewById<LinearLayout>(R.id.acc_channel_container)
         magnetometer = baseview.findViewById<SensorChart>(R.id.magnetometer)
+        magContainer = baseview.findViewById<LinearLayout>(R.id.mag_channel_container)
 
         gyroscope.streamTag = "Gyro"
         accelerometer.streamTag = "Acc"
@@ -494,6 +513,7 @@ class SensorDataFragment : Fragment() {
     }
 }
 
+// Class for the last tab, to be filled at a later time (?)
 class OtherDataFragment : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater,
