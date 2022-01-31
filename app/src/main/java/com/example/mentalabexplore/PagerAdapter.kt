@@ -78,14 +78,6 @@ class LineChart @JvmOverloads constructor(
         // Available height and width for the chart
         spacehorizontal = this.measuredWidth - paddingHorizontal // only pad the left side
         spacevertical = this.measuredHeight - 2*paddingVertical
-
-        val maxY = Model.range_y/2.0f
-        val mVals = floatArrayOf(
-            spacehorizontal/Model.maxElements, 0.0f, paddingHorizontal,
-            0.0f, -1.0f/maxY*(spacevertical/2.0f), Model.getAverage(streamTag)/maxY*(spacevertical/2.0f)+(spacevertical/2.0f)+paddingVertical,
-            0.0f, 0.0f, 1.0f)
-
-        transform.setValues(mVals)
     }
 
     override fun onDraw(canvas: Canvas?) {
@@ -95,7 +87,6 @@ class LineChart @JvmOverloads constructor(
         canvas?.drawLine(xAxisX1, avgY, xAxisX2, avgY, paint_baseline) // Horizontal baseline
 
         paint_text.textAlign = Paint.Align.LEFT
-        //canvas?.drawText("(+${(Model.scale_y/2.0f).toInt()} uV)", paddingHorizontal+5.0f, yAxisY1+5.0f+paint_text.textSize, paint_text)
         canvas?.drawText("(+${Model.scaleToVolts()})", yAxisX+5.0f, yAxisY1+5.0f+paint_text.textSize, paint_text)
         canvas?.drawText("(-${Model.scaleToVolts()})", yAxisX+5.0f, yAxisY2-5.0f-paint_text.textSize, paint_text)
 
@@ -106,19 +97,17 @@ class LineChart @JvmOverloads constructor(
         var xNum = Model.getData(streamTag).size
         if(xNum < 1) xNum = Model.maxElements
 
-        val maxY = Model.range_y/2.0f // scale is given as the range of all points, ie 2000
-
         // (width/max_elements)    0              padding_left
-        // 0                       (-1/scale_y)*(height/2)    (avg/scale_y)*(height/2) + (height/2) + padding_top
+        // 0                       (-1/range_y)*height    (avg/range_y)*height + (height/2) + padding_top
         // 0                       0              1
 
-        /*
-        var mVals = floatArrayOf(
-            (spacehorizontal)/xNum, 0.0f, paddingHorizontal,
-            0.0f, -1.0f/maxY*(spacevertical/2.0f), Model.getAverage(streamTag)/maxY*(spacevertical/2.0f)+(spacevertical/2.0f)+paddingVertical,
-            0.0f, 0.0f, 1.0f)
-        transform.setValues(mVals)
-         */
+        // -> y = (-1/range_y)*height*POINT + (avg/range_y)*height + (height/2) + padding_top
+        // where range is the uV Range on the y-Axis, height is the available vertical space
+        // and avg is the unscaled uV average of the channel
+        // -> y is scaled by the available range given in terms of available height and inverted
+        // (because the android coordinate system has a downward facing y-axis)
+        // afterwards, y is shifted by the channel average (scaled in the same way) to a new "fake" 0
+        // then, y is shifted further down to the middle of the available space (height/2 + padding_top)
 
         var mVals = floatArrayOf(
             (spacehorizontal)/xNum, 0.0f, paddingHorizontal,
@@ -126,12 +115,13 @@ class LineChart @JvmOverloads constructor(
             0.0f, 0.0f, 1.0f)
         transform.setValues(mVals)
 
-        //Make an array of points for the transformation
+        //Make an array of points for the transformation [x1, y1, x2, y2, ..., x_n, y_n]
         var transPoints: FloatArray = FloatArray(Model.getData(streamTag).size*2)
         for((i, datapoint) in Model.getData(streamTag).withIndex()) {
             transPoints.set(i*2, i.toFloat())
             transPoints.set(i*2+1, datapoint)
         }
+
         transform.mapPoints(transPoints)
 
         var start_x = if (transPoints.size >= 2) transPoints[0] else 0.0f
@@ -139,12 +129,13 @@ class LineChart @JvmOverloads constructor(
         var end_x = 0.0f
         var end_y = 0.0f
 
+        // go through all available points and draw a line to it from the last point
         for(i in 0..(transPoints.size-1) step 2) {
             end_x = transPoints[i]
             end_y = transPoints[i+1]
             canvas?.drawLine(start_x, start_y, end_x, end_y, paint)
             Model.timestamps[i/2]?.let{
-                // Draw the ticks on the x-axis
+                // Draw the tick on the x-axis
                 var x = (i/2)*(spacehorizontal)/xNum + paddingHorizontal
                 canvas?.drawLine(x, xAxisY+5.0f, x, xAxisY-5.0f, paint_baseline)
                 paint_text.textAlign = Paint.Align.CENTER
@@ -153,13 +144,11 @@ class LineChart @JvmOverloads constructor(
             start_x = transPoints[i]
             start_y = transPoints[i+1]
         }
-
-        //val realZero = Model.getAverage()/1000 * spacevertical + paddingVertical
-        //canvas?.drawLine(yAxisX-5.0f, realZero, yAxisX+5.0f, realZero, paint)
     }
 }
 
-// a lot of this is very similar to the Linechart class
+// A lot of this is very similar to the Linechart class
+// TODO: Use a matrix to transform sensor data depending on sensor maxes
 class SensorChart @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -170,8 +159,8 @@ class SensorChart @JvmOverloads constructor(
     var streamTag: String = ""
     var ind = -1
 
-    var paddingHorizontal = 20.0f
-    var paddingVertical = 20.0f
+    var paddingHorizontal = 40.0f
+    var paddingVertical = 60.0f
 
     var yAxisX = paddingHorizontal
     var yAxisY1 = paddingVertical
@@ -180,8 +169,6 @@ class SensorChart @JvmOverloads constructor(
     var xAxisX1 = yAxisX
     var xAxisX2 = xAxisX1
     var xAxisY = yAxisY2
-
-    var xStep = 10
 
     var spacehorizontal = 0.0f
     var spacevertical = 0.0f
@@ -221,10 +208,11 @@ class SensorChart @JvmOverloads constructor(
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
         yAxisY2 = this.measuredHeight.toFloat() - paddingVertical
-        xAxisX2 = this.measuredWidth.toFloat() - paddingHorizontal
+        xAxisX2 = this.measuredWidth.toFloat()
         xAxisY = yAxisY2
-        spacehorizontal = this.measuredWidth - 2*paddingHorizontal
-        spacevertical = this.measuredHeight - 4*paddingVertical
+
+        spacehorizontal = this.measuredWidth - paddingHorizontal // pad only on the left
+        spacevertical = this.measuredHeight - 2*paddingVertical
 
         when(streamTag) {
             "Gyro" -> ind = 0
@@ -238,8 +226,8 @@ class SensorChart @JvmOverloads constructor(
 
         //Log.d("ONDRAW", "streamtag: $streamTag")
 
-        canvas?.drawLine(yAxisX, yAxisY1, yAxisX, yAxisY2, paint)
-        canvas?.drawLine(xAxisX1, xAxisY, xAxisX2, xAxisY, paint)
+        canvas?.drawLine(yAxisX, yAxisY1, yAxisX, yAxisY2, paint) // y-Axis
+        canvas?.drawLine(xAxisX1, xAxisY, xAxisX2, xAxisY, paint) // x-Axis
 
         val tags: Array<String> = arrayOf("${streamTag}_X", "${streamTag}_Y", "${streamTag}_Z")
 
@@ -249,7 +237,10 @@ class SensorChart @JvmOverloads constructor(
             var xNum = datapoints.size
             if(xNum < 1) xNum = Model.maxElements
 
-            val mVals: FloatArray = floatArrayOf((this.measuredWidth.toFloat()-paddingHorizontal)/xNum, 0.0f, paddingHorizontal, 0.0f, -this.measuredHeight.toFloat()/Model.sensorMaxes[ind].absoluteValue, 0.0f, 0.0f, 0.0f, 1.0f)
+            var mVals = floatArrayOf(
+                spacehorizontal/xNum, 0.0f, paddingHorizontal,
+                0.0f, -1.0f/Model.sensorMaxes[ind].absoluteValue * spacevertical, 0.0f,
+                0.0f, 0.0f, 1.0f)
             matrices[ind].setValues(mVals)
 
             var start: Float? = null
@@ -262,8 +253,10 @@ class SensorChart @JvmOverloads constructor(
                     //Log.d("CURRENT STREAMTAG", streamTag)
                     var startY =
                         yAxisY2 - (start!! + Model.sensorMaxes[ind].absoluteValue) / (2.0f * Model.sensorMaxes[ind].absoluteValue) * spacevertical
+                    //startY = start!! * spacevertical/2.0f * Model.sensorMaxes[ind].absoluteValue + paddingVertical + spacevertical/2.0f
                     var stopY =
                         yAxisY2 - (end!! + Model.sensorMaxes[ind].absoluteValue) / (2.0f * Model.sensorMaxes[ind].absoluteValue) * spacevertical
+                    //stopY = end!! * spacevertical/2.0f * Model.sensorMaxes[ind].absoluteValue + paddingVertical + spacevertical/2.0f
                     //Log.d("ONDRAW", "Start Y: $startY")
                     //Log.d("ONDRAW", "Stop Y: $stopY")
                     //Log.d("ONDRAW", "Y Axis Start Y: $yAxisY1")
