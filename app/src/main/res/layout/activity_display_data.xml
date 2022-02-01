@@ -52,7 +52,7 @@
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="64dp"
         android:layout_marginStart="24dp"
         android:layout_marginEnd="24dp"
         android:layout_marginBottom="32dp"
@@ -63,74 +63,82 @@
         android:theme="?attr/actionBarTheme"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent" >
 
-    <ImageButton
-        android:id="@+id/imageButton3"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:elevation="10dp"
-        android:src="@drawable/ic_baseline_push_pin_24"
-        app:layout_constraintBottom_toBottomOf="@+id/toolbar"
-        app:layout_constraintStart_toStartOf="@+id/toolbar"
-        app:layout_constraintTop_toTopOf="@+id/toolbar"
-        tools:ignore="SpeakableTextPresentCheck"
-        tools:visibility="visible" />
+        <ImageButton
+            android:id="@+id/imageButton3"
+            android:layout_gravity="start"
+            android:layout_marginStart="12dp"
+            android:src="@drawable/ic_baseline_settings_24"
+            android:background="@drawable/tray_button_gray"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:onClick="changeVisualizationSettings"
+            app:layout_constraintBottom_toBottomOf="@+id/toolbar"
+            app:layout_constraintStart_toStartOf="@+id/toolbar"
+            app:layout_constraintTop_toTopOf="@+id/toolbar"
+            app:tint="@color/darkgray"
+            tools:ignore="SpeakableTextPresentCheck"
+            tools:visibility="visible" />
 
-    <ImageButton
-        android:id="@+id/imageButton5"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="24dp"
-        android:backgroundTint="@color/teal_700"
-        android:elevation="10dp"
-        app:layout_constraintBottom_toBottomOf="@+id/toolbar"
-        app:layout_constraintStart_toEndOf="@+id/imageButton3"
-        app:layout_constraintTop_toTopOf="@+id/toolbar"
-        app:layout_constraintVertical_bias="0.526"
-        app:srcCompat="@android:drawable/ic_media_play"
-        tools:ignore="SpeakableTextPresentCheck" />
+        <ImageButton
+            android:id="@+id/imageButton5"
+            android:layout_marginStart="10dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_baseline_filter_alt_24"
+            android:background="@drawable/tray_button_gray"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:onClick="setFilters"
+            app:layout_constraintBottom_toBottomOf="@+id/toolbar"
+            app:layout_constraintTop_toTopOf="@+id/toolbar"
+            app:layout_constraintVertical_bias="0.526"
+            app:tint="@color/darkgray"
+            tools:ignore="SpeakableTextPresentCheck" />
 
-    <ImageButton
-        android:id="@+id/imageButton6"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:backgroundTint="@color/teal_700"
-        android:elevation="10dp"
-        app:layout_constraintBottom_toBottomOf="@+id/toolbar"
-        app:layout_constraintEnd_toStartOf="@+id/imageButton7"
-        app:layout_constraintStart_toEndOf="@+id/imageButton5"
-        app:layout_constraintTop_toTopOf="@+id/toolbar"
-        app:srcCompat="@android:drawable/ic_media_play"
-        tools:ignore="SpeakableTextPresentCheck" />
+        <ImageButton
+            android:id="@+id/imageButton6"
+            android:layout_marginStart="10dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_baseline_push_pin_24"
+            android:background="@drawable/tray_button_gray"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:onClick="setMarker"
+            app:layout_constraintBottom_toBottomOf="@+id/toolbar"
+            app:layout_constraintTop_toTopOf="@+id/toolbar"
+            tools:ignore="SpeakableTextPresentCheck"
+            app:tint="@color/darkgray" />
 
-    <ImageButton
-        android:id="@+id/imageButton7"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="24dp"
-        android:backgroundTint="@color/teal_700"
-        android:elevation="10dp"
-        app:layout_constraintBottom_toBottomOf="@+id/toolbar"
-        app:layout_constraintEnd_toStartOf="@+id/imageButton8"
-        app:layout_constraintTop_toTopOf="@+id/toolbar"
-        app:layout_constraintVertical_bias="0.526"
-        app:srcCompat="@android:drawable/ic_media_play"
-        tools:ignore="SpeakableTextPresentCheck" />
+        <ImageButton
+            android:id="@+id/imageButton7"
+            android:layout_marginStart="10dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_baseline_cloud_upload_24"
+            android:background="@drawable/tray_button_gray"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:onClick="pushToLSL"
+            app:layout_constraintBottom_toBottomOf="@+id/toolbar"
+            app:layout_constraintTop_toTopOf="@+id/toolbar"
+            app:layout_constraintVertical_bias="0.526"
+            app:tint="@color/darkgray"
+            tools:ignore="SpeakableTextPresentCheck" />
 
-    <ImageButton
-        android:id="@+id/imageButton8"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
-        android:backgroundTint="@color/teal_700"
-        android:elevation="10dp"
-        app:layout_constraintBottom_toBottomOf="@+id/toolbar"
-        app:layout_constraintEnd_toEndOf="@+id/toolbar"
-        app:layout_constraintTop_toTopOf="@+id/toolbar"
-        app:layout_constraintVertical_bias="0.526"
-        app:srcCompat="@android:drawable/ic_media_play"
-        tools:ignore="SpeakableTextPresentCheck" />
+        <ImageButton
+            android:id="@+id/imageButton8"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="end"
+            android:layout_marginEnd="12dp"
+            android:background="@drawable/record_button"
+            android:onClick="record"
+            app:layout_constraintBottom_toBottomOf="@+id/toolbar"
+            app:layout_constraintEnd_toEndOf="@+id/toolbar"
+            app:layout_constraintTop_toTopOf="@+id/toolbar"
+            app:layout_constraintVertical_bias="0.526"
+            tools:ignore="SpeakableTextPresentCheck" />
+
+    </androidx.appcompat.widget.Toolbar>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

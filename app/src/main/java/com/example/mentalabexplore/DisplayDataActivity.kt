@@ -89,4 +89,12 @@ class DisplayDataActivity : AppCompatActivity() {
         super.onResume()
         mainHandler.post(updateModel)
     }
+
+    fun record(view: android.view.View) {}
+    fun pushToLSL(view: android.view.View) {}
+    fun setMarker(view: android.view.View) {
+        if(Model.isConnected) Model.updateDataCustomTimestamp()
+    }
+    fun setFilters(view: android.view.View) {}
+    fun changeVisualizationSettings(view: android.view.View) {}
 }

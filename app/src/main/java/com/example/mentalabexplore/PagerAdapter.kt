@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.AttributeSet
+import android.util.Log
 import android.view.*
 import android.widget.LinearLayout
 import androidx.cardview.widget.CardView
@@ -67,6 +68,10 @@ class LineChart @JvmOverloads constructor(
         strokeWidth = 2.0f
         textAlign = Paint.Align.RIGHT
         textSize = 30.0f
+    }
+    private val paint_marker = Paint().apply {
+        color = 0xffaa0000.toInt()
+        strokeWidth = 2.0f
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
@@ -136,10 +141,23 @@ class LineChart @JvmOverloads constructor(
             canvas?.drawLine(start_x, start_y, end_x, end_y, paint)
             Model.timestamps[i/2]?.let{
                 // Draw the tick on the x-axis
-                var x = (i/2)*(spacehorizontal)/xNum + paddingHorizontal
-                canvas?.drawLine(x, xAxisY+5.0f, x, xAxisY-5.0f, paint_baseline)
-                paint_text.textAlign = Paint.Align.CENTER
-                canvas?.drawText(Model.secondsToMinutes(it), x, xAxisY+10.0f+paint_text.textSize, paint_text) // it = Model.timestamps[i/2]
+                var x = (i / 2) * (spacehorizontal) / xNum + paddingHorizontal
+                if(it != Model.markerTimestamp) {
+                    canvas?.drawLine(x, xAxisY + 5.0f, x, xAxisY - 5.0f, paint_baseline)
+                    paint_text.textAlign = Paint.Align.CENTER
+                    canvas?.drawText(
+                        Model.millisToMinutes(it),
+                        x,
+                        xAxisY + 10.0f + paint_text.textSize,
+                        paint_text
+                    ) // it = Model.timestamps[i/2]
+                }
+                else {
+                    paint_marker.color = Model.markerColor.toInt()
+                    canvas?.drawLine(x, 0.0f, x, xAxisY + 5.0f, paint_marker)
+                    paint_text.textAlign = Paint.Align.CENTER
+                    //canvas?.drawText(Model.millisToMinutes(it), x, xAxisY + 10.0f + paint_text.textSize, paint_text)
+                }
             }
             start_x = transPoints[i]
             start_y = transPoints[i+1]
@@ -202,6 +220,11 @@ class SensorChart @JvmOverloads constructor(
 
     private val paint_baseline = Paint().apply {
         color = 0xffaaaaaa.toInt()
+        strokeWidth = 2.0f
+    }
+
+    private val paint_marker = Paint().apply {
+        color = 0xffaa0000.toInt()
         strokeWidth = 2.0f
     }
 
@@ -284,15 +307,28 @@ class SensorChart @JvmOverloads constructor(
                         // Draw the ticks on the x-axis
                         //var x = i * (this.measuredWidth.toFloat() - paddingHorizontal) / xNum + paddingHorizontal
                         var x = i * spacehorizontal / Model.timestamps.size + paddingHorizontal // We can't divide through 0 here as this is only executed if there is at least one value in timestamps
-                        //canvas?.drawLine(x, xAxisY, x, xAxisY - 5.0f, paint_text)
-                        canvas?.drawLine(x, this.measuredHeight.toFloat(), x, 0.0f, paint_baseline)
-                        paint_text.textAlign = Paint.Align.CENTER
-                        canvas?.drawText(
-                            Model.secondsToMinutes(it), // it = Model.timestamps[i]
-                            x,
-                            xAxisY - 10.0f,
-                            paint_text
-                        )
+                        if(it != Model.markerTimestamp) {
+                            //canvas?.drawLine(x, xAxisY, x, xAxisY - 5.0f, paint_text)
+                            canvas?.drawLine(
+                                x,
+                                xAxisY+5.0f,
+                                x,
+                                xAxisY-5.0f,
+                                paint_baseline
+                            )
+                            paint_text.textAlign = Paint.Align.CENTER
+                            canvas?.drawText(
+                                Model.millisToMinutes(it), // it = Model.timestamps[i]
+                                x,
+                                xAxisY + 10.0f + paint_text.textSize,
+                                paint_text
+                            )
+                        }
+                        else {
+                            paint_marker.color = Model.markerColor.toInt()
+                            canvas?.drawLine(x, 0.0f, x, xAxisY + 5.0f, paint_marker)
+                            paint_text.textAlign = Paint.Align.CENTER
+                        }
                     }
                 }
 

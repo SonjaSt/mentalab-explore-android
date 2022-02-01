@@ -25,6 +25,7 @@ object Model {
     var maxElements = timeWindow*1000 / refreshRate.toInt() // max elements to be drawn
 
     var batteryVals: LinkedList<Float> = LinkedList<Float>()
+    var minBattery: Float = 100.0f
     var temperatureVals: LinkedList<Float> = LinkedList<Float>()
     var channelAverages: MutableList<Float> = mutableListOf<Float>(1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f)
     var channelMaxes: MutableList<Float> = mutableListOf<Float>(1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f)
@@ -33,6 +34,8 @@ object Model {
     var startTime: Long? = null
     var lastTime: Long? = null
     var timestamps: LinkedList<Long?> = LinkedList<Long?>()
+    var markerTimestamp: Long = -1
+    var markerColor = 0xFFAA0000
     // channelData holds *all* channel data (ExG and sensors)
     var channelData: List<LinkedList<Float>> = listOf(LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>())
 
@@ -95,16 +98,16 @@ object Model {
 
         if(channelAverages[index] == 1.0f) channelAverages[index] == newDataPoint
         if(removed == null) {
-            var avg = 0.0f
-            for (a in channelData[index])
-                avg += a
-            if(!channelData[index].isEmpty()) avg /= channelData[index].size
-            channelAverages[index] = avg
+
+            var numPoints = channelData[index].size
+            if(numPoints <= 1) channelAverages[index] = newDataPoint
+            else channelAverages[index] = ((numPoints-1) * channelAverages[index] + newDataPoint) / numPoints
         }
         else channelAverages[index] = channelAverages[index] + newDataPoint / channelData[index].size - removed / channelData[index].size
 
-        if(index == 0) Log.d("AVG", "${channelAverages[index]}")
-        if(index == 0) Log.d("DATAPOINT", "${newDataPoint}")
+        //if(index == 0) Log.d("AVG", "${channelAverages[index]}")
+        //if(index == 0) Log.d("DATAPOINT", "${newDataPoint}")
+        //if(index == 0) Log.d("MAP", dataMap.toString())
     }
 
     fun insertSensorDataFromDevice(s: String) {
@@ -249,16 +252,18 @@ object Model {
         for(t in temperatureVals) {
             temperature = (temperature + t) / 2.0f
         }
-        return "$temperature°C"
+        return "${temperature.toInt()}°C"
     }
 
     fun getBatteryString(): String {
         if(!isConnected || batteryVals.size == 0) return ""
-        var battery = batteryVals[0]
+        var battery = 0.0f
         for(b in batteryVals) {
-            battery = (battery + b) / 2.0f
+            battery += b
         }
-        return "$battery%"
+        battery /= batteryVals.size
+        if(battery <= minBattery) minBattery = battery
+        return "${minBattery.toInt()}%"
     }
 
     fun secondsToMinutes(s: Long): String {
@@ -270,6 +275,10 @@ object Model {
         return "$mins:$secs"
     }
 
+    fun millisToMinutes(s: Long): String {
+        return secondsToMinutes((s/1000).toLong())
+    }
+
     fun scaleToVolts(scale: Float): String {
         if(scale >= 2000.0f) return "${(scale/2000.0f).toInt()} mV"
         else return "${(scale/2.0f).toInt()} uV"
@@ -279,7 +288,7 @@ object Model {
         return scaleToVolts(range_y)
     }
 
-    fun updateData() {
+    fun insertAllData() {
         if(!isConnected) return
 
         var keys = getDeviceKeys()
@@ -313,17 +322,36 @@ object Model {
                 }
             }
         }
+    }
+
+    fun updateDataCustomTimestamp(){
+        insertAllData()
+        if(timestamps.contains(markerTimestamp)) timestamps[timestamps.indexOf(markerTimestamp)] = null
+        if(timestamps.size >= maxElements) timestamps.remove()
+
+        var t: Long = TimeUnit.MILLISECONDS.toMillis(System.currentTimeMillis())
+        if (startTime == null) {
+            startTime = t
+            lastTime = 0
+        }
+        t -= startTime!!
+        markerTimestamp = t
+        timestamps.add(t)
+    }
+
+    fun updateData() {
+        insertAllData()
 
         if(timestamps.size >= maxElements) timestamps.remove()
 
-        var t: Long = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis())
+        var t: Long = TimeUnit.MILLISECONDS.toMillis(System.currentTimeMillis())
         if (startTime == null) {
             startTime = t
             lastTime = 0
             timestamps.add(0)
         }
         t -= startTime!!
-        if (t - lastTime!! >= 2L) {
+        if (t - lastTime!! >= 2000L) {
             timestamps.add(t)
             lastTime = t
         } else timestamps.add(null)

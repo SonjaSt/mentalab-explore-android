@@ -44,4 +44,8 @@
     <string name="g">G</string>
     <string name="a">A</string>
     <string name="m">M</string>
+    <string name="channel_5">Channel 5</string>
+    <string name="channel_6">Channel 6</string>
+    <string name="channel_7">Channel 7</string>
+    <string name="channel_8">Channel 8</string>
 </resources>
