@@ -98,8 +98,10 @@ class LineChart @JvmOverloads constructor(
         canvas?.drawLine(yAxisX, yAxisY1, yAxisX, yAxisY2, paint) // y-Axis
         canvas?.drawLine(xAxisX1, xAxisY, xAxisX2, xAxisY, paint) // x-Axis
 
+        if(!Model.isConnected || Model.getData(streamTag) == null) return
+
         //val mVals: FloatArray = floatArrayOf(this.measuredWidth.toFloat()/Model.maxElements, 0.0f, 0.0f, 0.0f, 1.0f/scale_y, (this.measuredHeight.toFloat()/2) - (Model.getAverage(streamTag)/scale_y), 0.0f, 0.0f, 1.0f)
-        var xNum = Model.getData(streamTag).size
+        var xNum = Model.getData(streamTag)!!.size
         if(xNum < 1) xNum = Model.maxElements
 
         // (width/max_elements)    0              padding_left
@@ -121,8 +123,8 @@ class LineChart @JvmOverloads constructor(
         transform.setValues(mVals)
 
         //Make an array of points for the transformation [x1, y1, x2, y2, ..., x_n, y_n]
-        var transPoints: FloatArray = FloatArray(Model.getData(streamTag).size*2)
-        for((i, datapoint) in Model.getData(streamTag).withIndex()) {
+        var transPoints: FloatArray = FloatArray(2*(Model.getData(streamTag)!!.size))
+        for((i, datapoint) in Model.getData(streamTag)!!.withIndex()) {
             transPoints.set(i*2, i.toFloat())
             transPoints.set(i*2+1, datapoint)
         }
@@ -254,8 +256,21 @@ class SensorChart @JvmOverloads constructor(
 
         val tags: Array<String> = arrayOf("${streamTag}_X", "${streamTag}_Y", "${streamTag}_Z")
 
+        var textWidth = paint_text.measureText(streamTag+"_X")
+        var lineSpace = textWidth/2.0f
+        paint_text.textAlign = Paint.Align.LEFT
+        canvas?.drawText(streamTag+"_X", this.measuredWidth.toFloat()-(textWidth+lineSpace)*3, paint_text.textSize+10.0f, paint_text)
+        canvas?.drawLine(this.measuredWidth.toFloat()-(textWidth+lineSpace)*2.0f-3.0f*lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, this.measuredWidth.toFloat()-(textWidth+lineSpace)*2.0f-lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, paint_red)
+        canvas?.drawText(streamTag+"_Y", this.measuredWidth.toFloat()-(textWidth+lineSpace)*2, paint_text.textSize+10.0f, paint_text)
+        canvas?.drawLine(this.measuredWidth.toFloat()-(textWidth+lineSpace)-3.0f*lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, this.measuredWidth.toFloat()-(textWidth+lineSpace)-lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, paint_green)
+        canvas?.drawText(streamTag+"_Z", this.measuredWidth.toFloat()-(textWidth+lineSpace), paint_text.textSize+10.0f, paint_text)
+        canvas?.drawLine(this.measuredWidth.toFloat()-3.0f*lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, this.measuredWidth.toFloat()-lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, paint_blue)
+
+        if(!Model.isConnected) return
+
         for(tag in tags) {
             var datapoints = Model.getData(tag)
+            if(datapoints == null) continue
 
             var xNum = datapoints.size
             if(xNum < 1) xNum = Model.maxElements
@@ -342,16 +357,6 @@ class SensorChart @JvmOverloads constructor(
                 //canvas?.drawLine(yAxisX-5.0f, realZero, yAxisX+5.0f, realZero, paint)
             }
         }
-
-        var textWidth = paint_text.measureText(streamTag+"_X")
-        var lineSpace = textWidth/2.0f
-        paint_text.textAlign = Paint.Align.LEFT
-        canvas?.drawText(streamTag+"_X", this.measuredWidth.toFloat()-(textWidth+lineSpace)*3, paint_text.textSize+10.0f, paint_text)
-        canvas?.drawLine(this.measuredWidth.toFloat()-(textWidth+lineSpace)*2.0f-3.0f*lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, this.measuredWidth.toFloat()-(textWidth+lineSpace)*2.0f-lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, paint_red)
-        canvas?.drawText(streamTag+"_Y", this.measuredWidth.toFloat()-(textWidth+lineSpace)*2, paint_text.textSize+10.0f, paint_text)
-        canvas?.drawLine(this.measuredWidth.toFloat()-(textWidth+lineSpace)-3.0f*lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, this.measuredWidth.toFloat()-(textWidth+lineSpace)-lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, paint_green)
-        canvas?.drawText(streamTag+"_Z", this.measuredWidth.toFloat()-(textWidth+lineSpace), paint_text.textSize+10.0f, paint_text)
-        canvas?.drawLine(this.measuredWidth.toFloat()-3.0f*lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, this.measuredWidth.toFloat()-lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, paint_blue)
     }
 }
 

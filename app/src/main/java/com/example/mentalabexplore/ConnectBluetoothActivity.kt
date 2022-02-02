@@ -25,11 +25,17 @@ class ConnectBluetoothActivity : AppCompatActivity() {
         scan()
     }
 
+    override fun onBackPressed() {
+        val intent = Intent(this, MainActivity::class.java)
+        startActivity(intent)
+        finish()
+    }
+
     fun connect(view: View) {
         // TODO do all of this in another thread / in the background
         // Currently, everything is blocked during connection
         if(Model.connectDevice(selectedDevice)) {
-            val intent = Intent(this, DisplayDataActivity::class.java)
+            val intent = Intent(this, DisplayDataActivity::class.java).putExtra("from", 1)
             startActivity(intent)
             finish()
         }

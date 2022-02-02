@@ -74,6 +74,17 @@ class DisplayDataActivity : AppCompatActivity() {
         mainHandler = Handler(Looper.getMainLooper())
     }
 
+    override fun onBackPressed() {
+        val caller = intent.getIntExtra("from", 0)
+        val intent = when {
+            caller == 1 -> Intent(this, ConnectBluetoothActivity::class.java)
+            else -> Intent(this, MainActivity::class.java)
+        }
+        Model.clearAllData()
+        startActivity(intent)
+        finish()
+    }
+
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu, menu)
         this.menu = menu

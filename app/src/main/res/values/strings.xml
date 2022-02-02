@@ -48,4 +48,6 @@
     <string name="channel_6">Channel 6</string>
     <string name="channel_7">Channel 7</string>
     <string name="channel_8">Channel 8</string>
+    <string name="delete_device_memory">Delete device memory</string>
+    <string name="delete">DELETE</string>
 </resources>

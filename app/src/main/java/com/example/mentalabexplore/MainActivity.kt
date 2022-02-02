@@ -20,7 +20,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun displayData(view: View) {
-        val intent = Intent(this, DisplayDataActivity::class.java)
+        val intent = Intent(this, DisplayDataActivity::class.java).putExtra("from", 0)
         startActivity(intent)
         finish()
     }
@@ -47,7 +47,7 @@ class MainActivity : AppCompatActivity() {
             ) == PackageManager.PERMISSION_GRANTED -> {
                 val intent = Intent(this, ConnectBluetoothActivity::class.java)
                 startActivity(intent)
-                Log.d("MainActivity", "After finish()")
+                finish()
             }
 
             else -> {

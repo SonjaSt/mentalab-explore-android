@@ -9,15 +9,15 @@ import java.util.concurrent.TimeUnit
 import kotlin.math.absoluteValue
 
 object Model {
-    var isConnected = false
-    var connectedTo = ""
-
     val keyGyro = "Gyro"
     val keyMag = "Mag"
     val keyAcc = "Acc"
     val keyChannel = "Channel"
     val keyTemperature = "Temperature"
     val keyBattery = "Battery"
+
+    var isConnected = false
+    var connectedTo = ""
 
     var refreshRate: Long = 100 // internal refresh rate, used when scheduling chart updates
     var range_y = 2000.0f // range in uV
@@ -39,7 +39,7 @@ object Model {
     // channelData holds *all* channel data (ExG and sensors)
     var channelData: List<LinkedList<Float>> = listOf(LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>())
 
-    lateinit var dataMap: Map<String, Queue<Float>>
+    var dataMap: Map<String, Queue<Float>>? = null
 
     fun changeTimeWindow(newTime: Int) {
         timeWindow = newTime
@@ -76,15 +76,17 @@ object Model {
     // TODO: The device sometimes sends out nonsensical values after turning it on (in my tests a bunch of values around 400000)
     // This could mess with the average for a while when the app is started
     fun insertDataFromDevice(s: String) {
+        if(!isConnected || dataMap == null) return
+
         var index = getChannelIndexFromString(s)!!
-        var newDataPoint = dataMap.get(s)?.poll()
+        var newDataPoint = dataMap!!.get(s)?.poll()
 
         if(newDataPoint == null) {
             if(channelData[index].isEmpty()) newDataPoint = 0.0f // Emergency dummy value to make sure our timestamps don't go out of sync
             else newDataPoint = channelData[index].last
         }
 
-        dataMap.get(s)?.clear()
+        dataMap!!.get(s)?.clear()
         if(newDataPoint!!.absoluteValue > channelMaxes[index].absoluteValue){
             channelMaxes[index] = newDataPoint
         }
@@ -111,14 +113,16 @@ object Model {
     }
 
     fun insertSensorDataFromDevice(s: String) {
+        if(!isConnected) return
+
         var index = getChannelIndexFromString(s)!!
-        var newDataPoint = dataMap.get(s)?.poll()
+        var newDataPoint = dataMap?.get(s)?.poll()
 
         if(newDataPoint == null) {
             if(channelData[index].isEmpty()) newDataPoint = 0.0f // Emergency dummy value to make sure our timestamps don't go out of sync
             else newDataPoint = channelData[index].last
         }
-        dataMap.get(s)?.clear()
+        dataMap?.get(s)?.clear()
 
         var ind = -1
         when {
@@ -177,11 +181,13 @@ object Model {
         }
     }
 
-    fun getDataAsMap(): Map<String, Queue<Float>> {
+    fun getDataAsMap(): Map<String, Queue<Float>>? {
+        if(!isConnected) return null
         return dataMap
     }
 
-    fun getData(s: String): Queue<Float> {
+    fun getData(s: String): Queue<Float>? {
+        if(!isConnected) return null
         val index = getChannelIndexFromString(s)
         index?.let{
             return channelData[index]
@@ -190,13 +196,13 @@ object Model {
     }
 
     fun getDeviceKeys(): MutableList<String>? {
-        if(isConnected) {
-            var keys = mutableListOf<String>()
-            for((e, _) in dataMap) {
-                keys.add(e)
-            }
-            return keys
+        if(!isConnected || dataMap == null) return null
+        var keys = mutableListOf<String>()
+        for((e, _) in dataMap!!) {
+            keys.add(e)
         }
+        return keys
+
         return null
     }
 
@@ -289,7 +295,7 @@ object Model {
     }
 
     fun insertAllData() {
-        if(!isConnected) return
+        if(!isConnected || dataMap == null) return
 
         var keys = getDeviceKeys()
         if (keys == null) return
@@ -302,8 +308,8 @@ object Model {
                 insertSensorDataFromDevice(k)
             }
             if(k.contains(keyBattery)){
-                var bat = dataMap.get("Battery ")?.poll()
-                dataMap.get("Battery ")?.clear()
+                var bat = dataMap!!.get("Battery ")?.poll()
+                dataMap!!.get("Battery ")?.clear()
                 if(bat != null) {
                     if (batteryVals.size >= 5) {
                         batteryVals.remove()
@@ -312,8 +318,8 @@ object Model {
                 }
             }
             if(k.contains(keyTemperature)){
-                var bat = dataMap.get("Temperature ")?.poll()
-                dataMap.get("Temperature ")?.clear()
+                var bat = dataMap!!.get("Temperature ")?.poll()
+                dataMap!!.get("Temperature ")?.clear()
                 if(bat != null) {
                     if (temperatureVals.size >= 5) {
                         temperatureVals.remove()
@@ -355,5 +361,29 @@ object Model {
             timestamps.add(t)
             lastTime = t
         } else timestamps.add(null)
+    }
+
+    fun clearAllData() {
+        var isConnected = false
+        var connectedTo = ""
+        batteryVals.clear()
+        minBattery = 100.0f
+
+        temperatureVals.clear()
+        channelAverages = mutableListOf<Float>(1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f)
+        channelMaxes = mutableListOf<Float>(1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f)
+        sensorMaxes = mutableListOf<Float>(1.0f, 1.0f, 1.0f)
+        sensorAverages = mutableListOf<Float>(1.0f, 1.0f, 1.0f)
+        startTime = null
+        lastTime = null
+        timestamps.clear()
+        markerTimestamp = -1
+        markerColor = 0xFFAA0000
+
+        for(i in 0..(channelData.size-1)){
+            channelData[i].clear()
+        }
+
+        dataMap = null
     }
 }

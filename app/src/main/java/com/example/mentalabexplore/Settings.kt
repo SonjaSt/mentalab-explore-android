@@ -75,7 +75,6 @@ class Settings : AppCompatActivity() {
 
         activeModules.add(findViewById(R.id.exg_switch))
         activeModules.add(findViewById(R.id.sensors_switch))
-        activeModules.add(findViewById(R.id.impedance_switch))
 
         setModuleSwitchStates()
 
@@ -95,7 +94,7 @@ class Settings : AppCompatActivity() {
         val channel = Model.getActiveChannels()
         activeModules[0].isChecked =  !(channel == null || channel.isEmpty())
         activeModules[1].isChecked = !(keys == null || !keys.contains("Acc_X"))
-        activeModules[2].isChecked = !(keys == null || !keys.contains("Temperature "))
+        //activeModules[2].isChecked = !(keys == null || !keys.contains("Temperature "))
     }
 
     override fun onPause() {
