@@ -39,12 +39,16 @@
         android:background="@drawable/round_button"
         android:layout_width="48dp"
         android:layout_height="48dp"
+        android:scaleX="1.5"
+        android:scaleY="1.5"
         android:onClick="findDevices"
+        android:elevation="5dp"
+        android:layout_marginBottom="20dp"
         app:layout_constraintBottom_toTopOf="@+id/connect_description"
         app:layout_constraintEnd_toEndOf="@+id/connect_description"
         app:layout_constraintStart_toStartOf="@+id/connect_description"
         app:srcCompat="@android:drawable/stat_sys_data_bluetooth"
-        app:tint="@color/teal_200"
+        app:tint="@color/mentalab_teal"
         tools:ignore="SpeakableTextPresentCheck" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

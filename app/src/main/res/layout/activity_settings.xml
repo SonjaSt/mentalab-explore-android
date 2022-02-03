@@ -230,7 +230,7 @@
                 <Button
                     android:id="@+id/delete_device_memory_button"
                     android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
+                    android:layout_height="48dp"
                     android:layout_marginVertical="2dp"
                     android:onClick="deleteMemory"
                     android:text="@string/delete"
@@ -316,7 +316,7 @@
                 <Button
                     android:id="@+id/button3"
                     android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
+                    android:layout_height="48dp"
                     android:layout_marginVertical="2dp"
                     android:onClick="findDevices"
                     android:text="@string/upload"
@@ -361,7 +361,7 @@
                 <Button
                     android:id="@+id/button4"
                     android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
+                    android:layout_height="48dp"
                     android:layout_marginVertical="2dp"
                     android:onClick="findDevices"
                     android:text="@string/connect"
@@ -370,6 +370,11 @@
                     tools:ignore="TouchTargetSizeCheck" />
 
             </LinearLayout>
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="8dp"
+                android:layout_weight="1" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -392,13 +397,14 @@
                     android:layout_weight="1" />
 
                 <Button
-                    android:id="@+id/button5"
+                    android:id="@+id/disconnect_button"
                     android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
+                    android:layout_height="48dp"
                     android:layout_marginVertical="2dp"
                     android:text="@string/disconnect"
                     android:background="@drawable/rounded_corners_gray"
                     android:textSize="12sp"
+                    android:onClick="disconnectDevice"
                     tools:ignore="TouchTargetSizeCheck" />
 
             </LinearLayout>

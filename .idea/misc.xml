@@ -4,6 +4,7 @@
     <option name="filePathToZoomLevelMap">
       <map>
         <entry key="..\:/AndroidStudio/MentalabExplore/app/src/main/res/drawable-v24/ic_launcher_foreground.xml" value="0.346875" />
+        <entry key="..\:/AndroidStudio/MentalabExplore/app/src/main/res/drawable/dialog_popup.xml" value="0.4427083333333333" />
         <entry key="..\:/AndroidStudio/MentalabExplore/app/src/main/res/drawable/ic_baseline_menu_24.xml" value="0.346875" />
         <entry key="..\:/AndroidStudio/MentalabExplore/app/src/main/res/drawable/ic_baseline_push_pin_24.xml" value="0.346875" />
         <entry key="..\:/AndroidStudio/MentalabExplore/app/src/main/res/drawable/ic_launcher_background.xml" value="0.346875" />
@@ -18,13 +19,14 @@
         <entry key="..\:/AndroidStudio/MentalabExplore/app/src/main/res/layout/activity_display_data.xml" value="0.4" />
         <entry key="..\:/AndroidStudio/MentalabExplore/app/src/main/res/layout/activity_main.xml" value="0.6" />
         <entry key="..\:/AndroidStudio/MentalabExplore/app/src/main/res/layout/activity_settings.xml" value="0.4" />
-        <entry key="..\:/AndroidStudio/MentalabExplore/app/src/main/res/layout/exg_fragment.xml" value="0.3912175648702595" />
+        <entry key="..\:/AndroidStudio/MentalabExplore/app/src/main/res/layout/exg_fragment.xml" value="0.3306122448979592" />
         <entry key="..\:/AndroidStudio/MentalabExplore/app/src/main/res/layout/exg_linechart.xml" value="0.245018115942029" />
         <entry key="..\:/AndroidStudio/MentalabExplore/app/src/main/res/layout/icon_toolbar.xml" value="0.44114583333333335" />
         <entry key="..\:/AndroidStudio/MentalabExplore/app/src/main/res/layout/main_toolbar.xml" value="0.5578125" />
         <entry key="..\:/AndroidStudio/MentalabExplore/app/src/main/res/layout/other_fragment.xml" value="0.4" />
         <entry key="..\:/AndroidStudio/MentalabExplore/app/src/main/res/layout/sensors_fragment.xml" value="0.3333333333333333" />
         <entry key="..\:/AndroidStudio/MentalabExplore/app/src/main/res/menu/menu.xml" value="0.536" />
+        <entry key="..\:/AndroidStudio/MentalabExplore/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml" value="0.4427083333333333" />
         <entry key="..\:/Users/Loki/AppData/Local/Android/Sdk/platforms/android-31/data/res/layout/simple_spinner_item.xml" value="0.3307291666666667" />
       </map>
     </option>

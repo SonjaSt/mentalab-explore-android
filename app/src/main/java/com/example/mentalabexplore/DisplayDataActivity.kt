@@ -7,8 +7,13 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.Display
+import android.view.KeyEvent
 import android.view.Menu
 import android.view.View
+import android.widget.Button
+import android.widget.FrameLayout
+import android.widget.ImageButton
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
 import androidx.viewpager2.widget.ViewPager2
@@ -41,6 +46,9 @@ class DisplayDataActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        instance = this
+
         setContentView(R.layout.activity_display_data)
 
         val toolbar = findViewById<Toolbar>(R.id.main_toolbar)
@@ -71,8 +79,19 @@ class DisplayDataActivity : AppCompatActivity() {
             tab.text = tabArray[position]
         }.attach()
 
+        var popupOverlay = findViewById<FrameLayout>(R.id.settings_overlay)
+        var markerOverlay = findViewById<View>(R.id.marker_settings)
+        var markerButton = findViewById<ImageButton>(R.id.marker_button)
+        markerButton.setOnLongClickListener {
+            popupOverlay.visibility = if(popupOverlay.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+            markerOverlay.visibility = if(markerOverlay.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+            true
+        }
+
         mainHandler = Handler(Looper.getMainLooper())
     }
+
+
 
     override fun onBackPressed() {
         val caller = intent.getIntExtra("from", 0)
@@ -104,8 +123,17 @@ class DisplayDataActivity : AppCompatActivity() {
     fun record(view: android.view.View) {}
     fun pushToLSL(view: android.view.View) {}
     fun setMarker(view: android.view.View) {
-        if(Model.isConnected) Model.updateDataCustomTimestamp()
+        //if(Model.isConnected) Model.updateDataCustomTimestamp()
+        if(Model.isConnected) Model.setMarker()
     }
     fun setFilters(view: android.view.View) {}
     fun changeVisualizationSettings(view: android.view.View) {}
+
+    companion object {
+        lateinit var instance: DisplayDataActivity
+        fun getActivity():DisplayDataActivity {
+            return instance
+        }
+    }
+
 }

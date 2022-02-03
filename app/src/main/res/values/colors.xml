@@ -8,5 +8,7 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="gray">#FFDDDDDD</color>
-    <color name="darkgray">#FFBBBBBB</color>
+    <color name="darkgray">#FF888888</color>
+    <color name="medium_gray">#FFAAAAAA</color>
+    <color name="mentalab_teal">#FF23E7EE</color>
 </resources>

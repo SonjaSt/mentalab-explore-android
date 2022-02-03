@@ -11,25 +11,6 @@
         android:paddingHorizontal="15dp"
         android:orientation="vertical" >
 
-        <LinearLayout
-            android:id="@+id/gyro_channel_container"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="25dp"
-                android:layout_height="@dimen/card_height"
-                android:layout_marginVertical="8dp"
-                android:gravity="center"
-                android:text="@string/g"
-                android:background="@drawable/rounded_corners_label"
-                />
-
-            <Space
-                android:layout_width="5dp"
-                android:layout_height="match_parent"/>
-
             <com.example.mentalabexplore.SensorChart
                 android:id="@+id/gyroscope"
                 android:layout_width="match_parent"
@@ -38,27 +19,6 @@
                 android:layout_marginVertical="8dp"
                 app:cardCornerRadius="@dimen/rounded_corner_tight">
             </com.example.mentalabexplore.SensorChart>
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/acc_channel_container"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="25dp"
-                android:layout_height="match_parent"
-                android:layout_marginVertical="8dp"
-                android:gravity="center"
-                android:text="@string/a"
-                android:background="@drawable/rounded_corners_label"
-                />
-
-            <Space
-                android:layout_width="5dp"
-                android:layout_height="match_parent"/>
 
             <com.example.mentalabexplore.SensorChart
                 android:id="@+id/accelerometer"
@@ -69,26 +29,6 @@
                 app:cardCornerRadius="@dimen/rounded_corner_tight">
             </com.example.mentalabexplore.SensorChart>
 
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/mag_channel_container"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="25dp"
-                android:layout_height="match_parent"
-                android:layout_marginVertical="8dp"
-                android:gravity="center"
-                android:text="@string/m"
-                android:background="@drawable/rounded_corners_label"
-                />
-
-            <Space
-                android:layout_width="5dp"
-                android:layout_height="match_parent"/>
 
             <com.example.mentalabexplore.SensorChart
                 android:id="@+id/magnetometer"
@@ -98,8 +38,6 @@
                 android:layout_marginVertical="8dp"
                 app:cardCornerRadius="@dimen/rounded_corner_tight">
             </com.example.mentalabexplore.SensorChart>
-
-        </LinearLayout>
 
         <Space
             android:layout_width="match_parent"

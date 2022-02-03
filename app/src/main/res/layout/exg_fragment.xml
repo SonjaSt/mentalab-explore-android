@@ -12,25 +12,6 @@
         android:paddingVertical="15dp"
         android:orientation="vertical" >
 
-        <LinearLayout
-            android:id="@+id/exg_channel_container_1"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="25dp"
-                android:layout_height="match_parent"
-                android:layout_marginVertical="8dp"
-                android:gravity="center"
-                android:text="@string/ch1"
-                android:background="@drawable/rounded_corners_label"
-                />
-
-            <Space
-                android:layout_width="5dp"
-                android:layout_height="match_parent"/>
-
             <com.example.mentalabexplore.LineChart
                 android:id="@+id/exg_channel_1"
                 android:layout_width="match_parent"
@@ -39,27 +20,6 @@
                 android:layout_marginVertical="8dp"
                 app:cardCornerRadius="@dimen/rounded_corner_tight">
             </com.example.mentalabexplore.LineChart>
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/exg_channel_container_2"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="25dp"
-                android:layout_height="match_parent"
-                android:layout_marginVertical="8dp"
-                android:gravity="center"
-                android:text="@string/ch2"
-                android:backgroundTint="@color/teal_200"
-                android:background="@drawable/rounded_corners_label" />
-
-            <Space
-                android:layout_width="5dp"
-                android:layout_height="match_parent"/>
 
             <com.example.mentalabexplore.LineChart
                 android:id="@+id/exg_channel_2"
@@ -70,27 +30,6 @@
                 app:cardCornerRadius="8dp">
             </com.example.mentalabexplore.LineChart>
 
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/exg_channel_container_3"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="25dp"
-                android:layout_height="match_parent"
-                android:layout_marginVertical="8dp"
-                android:gravity="center"
-                android:text="@string/ch3"
-                android:backgroundTint="@color/teal_200"
-                android:background="@drawable/rounded_corners_label" />
-
-            <Space
-                android:layout_width="5dp"
-                android:layout_height="match_parent"/>
-
             <com.example.mentalabexplore.LineChart
                 android:id="@+id/exg_channel_3"
                 android:layout_width="match_parent"
@@ -99,28 +38,6 @@
                 android:layout_marginVertical="8dp"
                 app:cardCornerRadius="8dp">
             </com.example.mentalabexplore.LineChart>
-
-        </LinearLayout>
-
-
-        <LinearLayout
-            android:id="@+id/exg_channel_container_4"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="25dp"
-                android:layout_height="match_parent"
-                android:layout_marginVertical="8dp"
-                android:gravity="center"
-                android:text="@string/ch4"
-                android:backgroundTint="@color/teal_200"
-                android:background="@drawable/rounded_corners_label" />
-
-            <Space
-                android:layout_width="5dp"
-                android:layout_height="match_parent"/>
 
             <com.example.mentalabexplore.LineChart
                 android:id="@+id/exg_channel_4"
@@ -131,28 +48,6 @@
                 app:cardCornerRadius="8dp">
             </com.example.mentalabexplore.LineChart>
 
-        </LinearLayout>
-
-
-        <LinearLayout
-            android:id="@+id/exg_channel_container_5"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="25dp"
-                android:layout_height="match_parent"
-                android:layout_marginVertical="8dp"
-                android:gravity="center"
-                android:text="@string/ch5"
-                android:backgroundTint="@color/teal_200"
-                android:background="@drawable/rounded_corners_label" />
-
-            <Space
-                android:layout_width="5dp"
-                android:layout_height="match_parent"/>
-
             <com.example.mentalabexplore.LineChart
                 android:id="@+id/exg_channel_5"
                 android:layout_width="match_parent"
@@ -161,27 +56,6 @@
                 android:layout_marginVertical="8dp"
                 app:cardCornerRadius="8dp">
             </com.example.mentalabexplore.LineChart>
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/exg_channel_container_6"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="25dp"
-                android:layout_height="match_parent"
-                android:layout_marginVertical="8dp"
-                android:gravity="center"
-                android:text="@string/ch6"
-                android:backgroundTint="@color/teal_200"
-                android:background="@drawable/rounded_corners_label" />
-
-            <Space
-                android:layout_width="5dp"
-                android:layout_height="match_parent"/>
 
             <com.example.mentalabexplore.LineChart
                 android:id="@+id/exg_channel_6"
@@ -192,27 +66,6 @@
                 app:cardCornerRadius="8dp">
             </com.example.mentalabexplore.LineChart>
 
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/exg_channel_container_7"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="25dp"
-                android:layout_height="match_parent"
-                android:layout_marginVertical="8dp"
-                android:gravity="center"
-                android:text="@string/ch7"
-                android:backgroundTint="@color/teal_200"
-                android:background="@drawable/rounded_corners_label" />
-
-            <Space
-                android:layout_width="5dp"
-                android:layout_height="match_parent"/>
-
             <com.example.mentalabexplore.LineChart
                 android:id="@+id/exg_channel_7"
                 android:layout_width="match_parent"
@@ -222,27 +75,6 @@
                 app:cardCornerRadius="8dp">
             </com.example.mentalabexplore.LineChart>
 
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/exg_channel_container_8"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="25dp"
-                android:layout_height="match_parent"
-                android:layout_marginVertical="8dp"
-                android:gravity="center"
-                android:text="@string/ch8"
-                android:backgroundTint="@color/teal_200"
-                android:background="@drawable/rounded_corners_label" />
-
-            <Space
-                android:layout_width="5dp"
-                android:layout_height="match_parent"/>
-
             <com.example.mentalabexplore.LineChart
                 android:id="@+id/exg_channel_8"
                 android:layout_width="match_parent"
@@ -251,8 +83,6 @@
                 android:layout_marginVertical="8dp"
                 app:cardCornerRadius="8dp">
             </com.example.mentalabexplore.LineChart>
-
-        </LinearLayout>
 
         <Space
             android:layout_width="match_parent"

@@ -19,9 +19,10 @@ object Model {
     var isConnected = false
     var connectedTo = ""
 
-    var refreshRate: Long = 100 // internal refresh rate, used when scheduling chart updates
+    var refreshRate: Long = 30 // internal refresh rate, used when scheduling chart updates
     var range_y = 2000.0f // range in uV
     var timeWindow = 10 // in seconds
+    var timeGap = 2000L // distance of ticks to each other in ms, i.e. 2000 -> 2 seconds between ticks on x-Axis
     var maxElements = timeWindow*1000 / refreshRate.toInt() // max elements to be drawn
 
     var batteryVals: LinkedList<Float> = LinkedList<Float>()
@@ -33,9 +34,10 @@ object Model {
     var sensorAverages: MutableList<Float> = mutableListOf<Float>(1.0f, 1.0f, 1.0f)
     var startTime: Long? = null
     var lastTime: Long? = null
-    var timestamps: LinkedList<Long?> = LinkedList<Long?>()
-    var markerTimestamp: Long = -1
+    var timestamps: LinkedList<Long> = LinkedList<Long>() // timestamps in milliseconds
+    var markerTimestamps: LinkedList<Long> = LinkedList<Long>()
     var markerColor = 0xFFAA0000
+    var markerColors: LinkedList<Long> = LinkedList<Long>()
     // channelData holds *all* channel data (ExG and sensors)
     var channelData: List<LinkedList<Float>> = listOf(LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>(), LinkedList<Float>())
 
@@ -285,6 +287,22 @@ object Model {
         return secondsToMinutes((s/1000).toLong())
     }
 
+    fun timeWithLeadingZero(t: Long): String{
+        return when {
+            t < 10 -> "0$t"
+            else -> "$t"
+        }
+    }
+
+    fun millisToHours(s: Long): String {
+        val s_seconds = s / 1000
+        var h = s_seconds / 3600
+        var m = (s_seconds % 3600) / 60
+        var s = s_seconds % 60
+
+        return "${timeWithLeadingZero(h)}:${timeWithLeadingZero(m)}:${timeWithLeadingZero(s)}"
+    }
+
     fun scaleToVolts(scale: Float): String {
         if(scale >= 2000.0f) return "${(scale/2000.0f).toInt()} mV"
         else return "${(scale/2.0f).toInt()} uV"
@@ -332,7 +350,6 @@ object Model {
 
     fun updateDataCustomTimestamp(){
         insertAllData()
-        if(timestamps.contains(markerTimestamp)) timestamps[timestamps.indexOf(markerTimestamp)] = null
         if(timestamps.size >= maxElements) timestamps.remove()
 
         var t: Long = TimeUnit.MILLISECONDS.toMillis(System.currentTimeMillis())
@@ -341,8 +358,12 @@ object Model {
             lastTime = 0
         }
         t -= startTime!!
-        markerTimestamp = t
+        markerTimestamps.add(t)
         timestamps.add(t)
+    }
+
+    fun setMarker(){
+        if(startTime != null) markerTimestamps.add(TimeUnit.MILLISECONDS.toMillis(System.currentTimeMillis()) - startTime!!)
     }
 
     fun updateData() {
@@ -351,21 +372,35 @@ object Model {
         if(timestamps.size >= maxElements) timestamps.remove()
 
         var t: Long = TimeUnit.MILLISECONDS.toMillis(System.currentTimeMillis())
+
+        if (startTime == null) {
+            startTime = t
+            lastTime = 0
+        }
+        t -= startTime!!
+        timestamps.add(t)
+
+        if(!markerTimestamps.isEmpty() && markerTimestamps.first < timestamps[0]) markerTimestamps.removeFirst()
+
+        /*
         if (startTime == null) {
             startTime = t
             lastTime = 0
             timestamps.add(0)
         }
+
         t -= startTime!!
         if (t - lastTime!! >= 2000L) {
             timestamps.add(t)
             lastTime = t
         } else timestamps.add(null)
+
+         */
     }
 
     fun clearAllData() {
-        var isConnected = false
-        var connectedTo = ""
+        isConnected = false
+        connectedTo = ""
         batteryVals.clear()
         minBattery = 100.0f
 
@@ -377,8 +412,9 @@ object Model {
         startTime = null
         lastTime = null
         timestamps.clear()
-        markerTimestamp = -1
+        markerTimestamps.clear()
         markerColor = 0xFFAA0000
+        markerColors.clear()
 
         for(i in 0..(channelData.size-1)){
             channelData[i].clear()

@@ -1,16 +1,16 @@
 package com.example.mentalabexplore
 
 import android.content.Intent
+import android.graphics.Color
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.Display
 import android.view.Menu
 import android.view.View
-import android.widget.ArrayAdapter
-import android.widget.Spinner
-import android.widget.Switch
+import android.widget.*
 import androidx.appcompat.widget.Toolbar
 import androidx.core.app.NavUtils
 
@@ -114,13 +114,11 @@ class Settings : AppCompatActivity() {
     }
 
     fun findDevices(view: View) {
-        try{
-            Model.scanDevices(applicationContext)
-            Log.d("MainActivity", "Successfully scanned for devices.")
-        } catch(e: Exception) {
-            Log.d("MainActivity", "Encountered error while scanning for devices.")
-            e.printStackTrace()
-        }
+        Model.clearAllData()
+        DisplayDataActivity.instance.finish()
+        val intent = Intent(this, ConnectBluetoothActivity::class.java).putExtra("from", 2)
+        startActivity(intent)
+        finish()
     }
 
     fun applySettings(view: View) {
@@ -130,5 +128,22 @@ class Settings : AppCompatActivity() {
         NavUtils.navigateUpFromSameTask(this)
         this.overridePendingTransition(0, 0)
         finish()
+    }
+
+    fun disconnectDevice(view: android.view.View) {
+        val b = findViewById<Button>(R.id.disconnect_button)
+        b.background = getDrawable(R.drawable.rounded_corners_dark_gray)
+        val handler = Handler(Looper.getMainLooper())
+        handler.postDelayed({
+            Model.clearAllData()
+            b.background = getDrawable(R.drawable.rounded_corners_gray)
+            menu?.let {
+                menu!!.findItem(R.id.action_connectedDevice).setTitle("")
+                menu!!.findItem(R.id.action_temperature).setTitle("")
+                menu!!.findItem(R.id.action_battery).setTitle("")
+            }
+            val t = Toast.makeText(this, "Disconnected from device", Toast.LENGTH_SHORT)
+            t.show()
+        }, 500)
     }
 }

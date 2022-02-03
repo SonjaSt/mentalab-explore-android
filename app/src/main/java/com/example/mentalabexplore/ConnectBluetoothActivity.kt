@@ -10,6 +10,8 @@ import android.view.Gravity
 import android.view.View
 import android.widget.*
 import androidx.core.content.ContextCompat
+import androidx.core.content.res.ResourcesCompat
+import androidx.core.graphics.TypefaceCompat
 
 class ConnectBluetoothActivity : AppCompatActivity() {
     lateinit var selectedDevice: String

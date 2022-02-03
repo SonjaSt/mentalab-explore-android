@@ -18,6 +18,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import kotlin.math.absoluteValue
+import kotlin.math.roundToInt
 
 class DataPagerAdapter(fragmentActivity: FragmentActivity, val fragments:ArrayList<Fragment>) : FragmentStateAdapter(fragmentActivity) {
 
@@ -36,7 +37,7 @@ class LineChart @JvmOverloads constructor(
     // streamTag determines what data is display by the chart, i.e. "Channel_1", "Gyro_Y" etc.
     var streamTag: String = ""
 
-    var paddingHorizontal = 40.0f
+    var paddingHorizontal = 150.0f
     var paddingVertical = 60.0f
 
     // Coordinates of the y- and x-axis
@@ -91,14 +92,17 @@ class LineChart @JvmOverloads constructor(
         val avgY = (yAxisY2-yAxisY1)/2 + paddingVertical
         canvas?.drawLine(xAxisX1, avgY, xAxisX2, avgY, paint_baseline) // Horizontal baseline
 
+        paint_text.textAlign = Paint.Align.RIGHT
+        canvas?.drawText("(+${Model.scaleToVolts()})", yAxisX-10.0f, yAxisY1+paint_text.textSize, paint_text)
+        canvas?.drawText("(-${Model.scaleToVolts()})", yAxisX-10.0f, yAxisY2-5.0f, paint_text)
         paint_text.textAlign = Paint.Align.LEFT
-        canvas?.drawText("(+${Model.scaleToVolts()})", yAxisX+5.0f, yAxisY1+5.0f+paint_text.textSize, paint_text)
-        canvas?.drawText("(-${Model.scaleToVolts()})", yAxisX+5.0f, yAxisY2-5.0f-paint_text.textSize, paint_text)
+        canvas?.drawText("ch${streamTag.last()}", 10.0f, this.measuredHeight/2.0f, paint_text)
 
         canvas?.drawLine(yAxisX, yAxisY1, yAxisX, yAxisY2, paint) // y-Axis
         canvas?.drawLine(xAxisX1, xAxisY, xAxisX2, xAxisY, paint) // x-Axis
 
         if(!Model.isConnected || Model.getData(streamTag) == null) return
+        if(Model.timestamps == null || Model.timestamps.isEmpty()) return
 
         //val mVals: FloatArray = floatArrayOf(this.measuredWidth.toFloat()/Model.maxElements, 0.0f, 0.0f, 0.0f, 1.0f/scale_y, (this.measuredHeight.toFloat()/2) - (Model.getAverage(streamTag)/scale_y), 0.0f, 0.0f, 1.0f)
         var xNum = Model.getData(streamTag)!!.size
@@ -141,28 +145,59 @@ class LineChart @JvmOverloads constructor(
             end_x = transPoints[i]
             end_y = transPoints[i+1]
             canvas?.drawLine(start_x, start_y, end_x, end_y, paint)
+            /*
             Model.timestamps[i/2]?.let{
                 // Draw the tick on the x-axis
-                var x = (i / 2) * (spacehorizontal) / xNum + paddingHorizontal
-                if(it != Model.markerTimestamp) {
-                    canvas?.drawLine(x, xAxisY + 5.0f, x, xAxisY - 5.0f, paint_baseline)
-                    paint_text.textAlign = Paint.Align.CENTER
-                    canvas?.drawText(
-                        Model.millisToMinutes(it),
-                        x,
-                        xAxisY + 10.0f + paint_text.textSize,
-                        paint_text
-                    ) // it = Model.timestamps[i/2]
-                }
-                else {
-                    paint_marker.color = Model.markerColor.toInt()
-                    canvas?.drawLine(x, 0.0f, x, xAxisY + 5.0f, paint_marker)
-                    paint_text.textAlign = Paint.Align.CENTER
-                    //canvas?.drawText(Model.millisToMinutes(it), x, xAxisY + 10.0f + paint_text.textSize, paint_text)
-                }
+            var x = (i / 2) * (spacehorizontal) / xNum + paddingHorizontal
+                canvas?.drawLine(x, xAxisY + 5.0f, x, xAxisY - 5.0f, paint_baseline)
+                paint_text.textAlign = Paint.Align.CENTER
+                canvas?.drawText(
+                    Model.millisToHours(it),
+                    x,
+                    xAxisY + 10.0f + paint_text.textSize,
+                    paint_text
+                ) // it = Model.timestamps[i/2]
             }
+             */
             start_x = transPoints[i]
             start_y = transPoints[i+1]
+        }
+
+        var firstTime = Long.MIN_VALUE
+        // search for the tick start time
+        for(i in Model.timestamps.first..(Model.timestamps.first+Model.timeGap)) {
+            if (i % Model.timeGap < Model.refreshRate*2) {
+                firstTime = i
+                break
+            }
+        }
+        for(i in firstTime..Model.timestamps.last step Model.timeGap) {
+            //var x = i * spacehorizontal / Model.timestamps.size + paddingHorizontal // We can't divide through 0 here as this is only executed if there is at least one value in timestamps
+            var x =
+                (i - Model.timestamps.first) / (Model.timestamps.last - Model.timestamps.first).toFloat() * spacehorizontal + paddingHorizontal
+            canvas?.drawLine(
+                x,
+                xAxisY + 5.0f,
+                x,
+                xAxisY - 5.0f,
+                paint_baseline
+            )
+            paint_text.textAlign = Paint.Align.CENTER
+            canvas?.drawText(
+                Model.millisToHours(i), // it = Model.timestamps[i]
+                x,
+                xAxisY + 10.0f + paint_text.textSize,
+                paint_text
+            )
+        }
+
+        for((i, m) in Model.markerTimestamps.withIndex()){
+            val rangeMin = Model.timestamps.first
+            val rangeMax = Model.timestamps.last
+            if(m < rangeMin) continue
+            // find out x
+            var x = ((m - rangeMin) / (rangeMax - rangeMin).toFloat()) * spacehorizontal + paddingHorizontal
+            canvas?.drawLine(x, 0.0f, x, this.measuredHeight.toFloat(), paint_marker)
         }
     }
 }
@@ -179,7 +214,7 @@ class SensorChart @JvmOverloads constructor(
     var streamTag: String = ""
     var ind = -1
 
-    var paddingHorizontal = 40.0f
+    var paddingHorizontal = 150.0f
     var paddingVertical = 60.0f
 
     var yAxisX = paddingHorizontal
@@ -256,6 +291,9 @@ class SensorChart @JvmOverloads constructor(
 
         val tags: Array<String> = arrayOf("${streamTag}_X", "${streamTag}_Y", "${streamTag}_Z")
 
+        paint_text.textAlign = Paint.Align.LEFT
+        canvas?.drawText("$streamTag", 10.0f, this.measuredHeight/2.0f, paint_text)
+
         var textWidth = paint_text.measureText(streamTag+"_X")
         var lineSpace = textWidth/2.0f
         paint_text.textAlign = Paint.Align.LEFT
@@ -267,6 +305,7 @@ class SensorChart @JvmOverloads constructor(
         canvas?.drawLine(this.measuredWidth.toFloat()-3.0f*lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, this.measuredWidth.toFloat()-lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, paint_blue)
 
         if(!Model.isConnected) return
+        if(Model.timestamps == null || Model.timestamps.isEmpty()) return
 
         for(tag in tags) {
             var datapoints = Model.getData(tag)
@@ -283,6 +322,8 @@ class SensorChart @JvmOverloads constructor(
 
             var start: Float? = null
             var end = 0.0f
+
+            var lastTimeStamp: Long? = null
             for ((i, datapoint) in datapoints.withIndex()) {
 
                 end = datapoint
@@ -317,46 +358,95 @@ class SensorChart @JvmOverloads constructor(
                     //canvas?.drawLine(0.0f, 0.0f, this.measuredWidth.toFloat(), this.measuredHeight.toFloat(), paint)
                 }
 
+                /*
+
                 if(tag.last() == 'X') {
-                    Model.timestamps[i]?.let {
-                        // Draw the ticks on the x-axis
-                        //var x = i * (this.measuredWidth.toFloat() - paddingHorizontal) / xNum + paddingHorizontal
-                        var x = i * spacehorizontal / Model.timestamps.size + paddingHorizontal // We can't divide through 0 here as this is only executed if there is at least one value in timestamps
-                        if(it != Model.markerTimestamp) {
-                            //canvas?.drawLine(x, xAxisY, x, xAxisY - 5.0f, paint_text)
-                            canvas?.drawLine(
-                                x,
-                                xAxisY+5.0f,
-                                x,
-                                xAxisY-5.0f,
-                                paint_baseline
-                            )
-                            paint_text.textAlign = Paint.Align.CENTER
-                            canvas?.drawText(
-                                Model.millisToMinutes(it), // it = Model.timestamps[i]
-                                x,
-                                xAxisY + 10.0f + paint_text.textSize,
-                                paint_text
-                            )
-                        }
-                        else {
-                            paint_marker.color = Model.markerColor.toInt()
-                            canvas?.drawLine(x, 0.0f, x, xAxisY + 5.0f, paint_marker)
-                            paint_text.textAlign = Paint.Align.CENTER
-                        }
+                    // Draw the ticks on the x-axis
+                    // var x = i * (this.measuredWidth.toFloat() - paddingHorizontal) / xNum + paddingHorizontal
+                    var x = i * spacehorizontal / Model.timestamps.size + paddingHorizontal // We can't divide through 0 here as this is only executed if there is at least one value in timestamps
+                    // This if will almost always work, except when there hasn't been a refresh
+                    // right after the 0, 2, 4, 6... mark
+                    if(Model.timestamps[i] % (Model.timeGap * 1000) < Model.refreshRate) {
+                        Log.d("TIMESTAMP", "${Model.timestamps[i]}")
+                        //canvas?.drawLine(x, xAxisY, x, xAxisY - 5.0f, paint_text)
+                        canvas?.drawLine(
+                            x,
+                            xAxisY + 5.0f,
+                            x,
+                            xAxisY - 5.0f,
+                            paint_baseline
+                        )
+                        paint_text.textAlign = Paint.Align.CENTER
+                        canvas?.drawText(
+                            Model.millisToHours(Model.timestamps[i]), // it = Model.timestamps[i]
+                            x,
+                            xAxisY + 10.0f + paint_text.textSize,
+                            paint_text
+                        )
                     }
+                    /*
+                    if(Model.timestamps[i] == Model.markerTimestamp) {
+                        paint_marker.color = Model.markerColor.toInt()
+                        canvas?.drawLine(x, 0.0f, x, xAxisY + 5.0f, paint_marker)
+                        paint_text.textAlign = Paint.Align.CENTER
+                    }
+
+                     */
                 }
+                 */
 
                 start = datapoint
             }
-            if(tag.last() == 'X') {
-                val avgY = (yAxisY2 - yAxisY1) / 2
-                //val realZero = Model.getAverage()/1000 * spacevertical + paddingVertical
-                canvas?.drawLine(0.0f, avgY, 0.0f, avgY, paint)
-                //canvas?.drawLine() // Baseline
-                //canvas?.drawLine(yAxisX-5.0f, realZero, yAxisX+5.0f, realZero, paint)
+        }
+
+        var firstTime = Long.MIN_VALUE
+        // search for the tick start time
+        for(i in Model.timestamps.first..(Model.timestamps.first+Model.timeGap)) {
+            if (i % Model.timeGap < Model.refreshRate*2) {
+                firstTime = i
+                break
             }
         }
+        for(i in firstTime..Model.timestamps.last step Model.timeGap) {
+            //var x = i * spacehorizontal / Model.timestamps.size + paddingHorizontal // We can't divide through 0 here as this is only executed if there is at least one value in timestamps
+            var x =
+                (i - Model.timestamps.first) / (Model.timestamps.last - Model.timestamps.first).toFloat() * spacehorizontal + paddingHorizontal
+            canvas?.drawLine(
+                x,
+                xAxisY + 5.0f,
+                x,
+                xAxisY - 5.0f,
+                paint_baseline
+            )
+            paint_text.textAlign = Paint.Align.CENTER
+            canvas?.drawText(
+                Model.millisToHours(i), // it = Model.timestamps[i]
+                x,
+                xAxisY + 10.0f + paint_text.textSize,
+                paint_text
+            )
+        }
+
+        for((i, m) in Model.markerTimestamps.withIndex()){
+            val rangeMin = Model.timestamps.first
+            val rangeMax = Model.timestamps.last
+            if(m < rangeMin) continue
+            // find out x
+            var x = ((m - rangeMin) / (rangeMax - rangeMin).toFloat()) * spacehorizontal + paddingHorizontal
+            canvas?.drawLine(x, 0.0f, x, this.measuredHeight.toFloat(), paint_marker)
+        }
+
+        paint_text.textAlign = Paint.Align.RIGHT
+        val range = Model.sensorMaxes[ind].roundToInt()
+        canvas?.drawText("+$range", yAxisX-10.0f, yAxisY1, paint_text)
+        canvas?.drawText("0", yAxisX-10.0f, this.measuredHeight/2.0f, paint_text)
+        canvas?.drawText("-$range", yAxisX-10.0f, yAxisY2, paint_text)
+
+        val avgY = this.measuredHeight / 2.0f
+        //val realZero = Model.getAverage()/1000 * spacevertical + paddingVertical
+        canvas?.drawLine(yAxisX, avgY, this.measuredWidth.toFloat(), avgY, paint_baseline)
+        //canvas?.drawLine() // Baseline
+        //canvas?.drawLine(yAxisX-5.0f, realZero, yAxisX+5.0f, realZero, paint)
     }
 }
 
@@ -365,7 +455,6 @@ class ExgDataFragment : Fragment() {
     lateinit var mainHandler : Handler
 
     var channels: MutableList<LineChart> = mutableListOf()
-    var containers: MutableList<LinearLayout> = mutableListOf()
     val maxCharts = 8
 
 
@@ -377,24 +466,24 @@ class ExgDataFragment : Fragment() {
                     for (i in 1..maxCharts) {
                         if (activeChannels.contains("Channel_${i}")) {
                             //Log.d("Active channels", "Channel_${i-1}")
-                            if (containers[i - 1].isGone) containers[i - 1].visibility = View.VISIBLE
+                            if (channels[i - 1].isGone) channels[i - 1].visibility = View.VISIBLE
                             channels[i-1].invalidate()
                         }
                         else {
-                            if (containers[i - 1].isVisible) containers[i - 1].visibility = View.GONE
+                            if (channels[i - 1].isVisible) channels[i - 1].visibility = View.GONE
                         }
                     }
                 }
                 else {
                     // If no channels are active, don't draw anything
-                    for(c in containers) {
+                    for(c in channels) {
                         if(c.isVisible) c.visibility = View.GONE
                     }
                 }
             }
             else {
                 // If no device is connected, don't draw anything
-                for(c in containers) {
+                for(c in channels) {
                     if(c.isVisible) c.visibility = View.GONE
                 }
             }
@@ -415,21 +504,13 @@ class ExgDataFragment : Fragment() {
         // but I had some trouble with that and thought it wasn't too important since the
         // amount of channels doesn't exceed 8
         channels.add(baseView.findViewById<LineChart>(R.id.exg_channel_1))
-        containers.add(baseView.findViewById<LinearLayout>(R.id.exg_channel_container_1))
         channels.add(baseView.findViewById<LineChart>(R.id.exg_channel_2))
-        containers.add(baseView.findViewById<LinearLayout>(R.id.exg_channel_container_2))
         channels.add(baseView.findViewById<LineChart>(R.id.exg_channel_3))
-        containers.add(baseView.findViewById<LinearLayout>(R.id.exg_channel_container_3))
         channels.add(baseView.findViewById<LineChart>(R.id.exg_channel_4))
-        containers.add(baseView.findViewById<LinearLayout>(R.id.exg_channel_container_4))
         channels.add(baseView.findViewById<LineChart>(R.id.exg_channel_5))
-        containers.add(baseView.findViewById<LinearLayout>(R.id.exg_channel_container_5))
         channels.add(baseView.findViewById<LineChart>(R.id.exg_channel_6))
-        containers.add(baseView.findViewById<LinearLayout>(R.id.exg_channel_container_6))
         channels.add(baseView.findViewById<LineChart>(R.id.exg_channel_7))
-        containers.add(baseView.findViewById<LinearLayout>(R.id.exg_channel_container_7))
         channels.add(baseView.findViewById<LineChart>(R.id.exg_channel_8))
-        containers.add(baseView.findViewById<LinearLayout>(R.id.exg_channel_container_8))
 
         // Add a tag to every channel so we know what data to draw
         for(i in 1..8){
@@ -465,43 +546,39 @@ class SensorDataFragment : Fragment() {
     lateinit var accelerometer: SensorChart
     lateinit var magnetometer: SensorChart
 
-    lateinit var gyroContainer: LinearLayout
-    lateinit var accContainer: LinearLayout
-    lateinit var magContainer: LinearLayout
-
     lateinit var mainHandler: Handler
 
     val updateChartDelayed = object : Runnable {
         override fun run() {
             if(Model.isConnected) {
                 if(Model.isGyroscopeActive()) {
-                    if(!gyroContainer.isVisible) gyroContainer.visibility = View.VISIBLE
+                    if(!gyroscope.isVisible) gyroscope.visibility = View.VISIBLE
                     gyroscope.invalidate()
                 }
                 else {
-                    if(gyroContainer.isVisible) gyroContainer.visibility = View.GONE
+                    if(gyroscope.isVisible) gyroscope.visibility = View.GONE
                 }
 
                 if(Model.isAccelerometerActive()) {
-                    if(!accContainer.isVisible) accContainer.visibility = View.VISIBLE
+                    if(!accelerometer.isVisible) accelerometer.visibility = View.VISIBLE
                     accelerometer.invalidate()
                 }
                 else {
-                    if(accContainer.isVisible) accContainer.visibility = View.GONE
+                    if(accelerometer.isVisible) accelerometer.visibility = View.GONE
                 }
 
                 if(Model.isMagnetometerActive()) {
-                    if(!magContainer.isVisible) magContainer.visibility = View.VISIBLE
+                    if(!magnetometer.isVisible) magnetometer.visibility = View.VISIBLE
                     magnetometer.invalidate()
                 }
                 else {
-                    if(magContainer.isVisible) magContainer.visibility = View.GONE
+                    if(magnetometer.isVisible) magnetometer.visibility = View.GONE
                 }
             }
             else {
-                if(gyroContainer.isVisible) gyroContainer.visibility = View.GONE
-                if(accContainer.isVisible) accContainer.visibility = View.GONE
-                if(magContainer.isVisible) magContainer.visibility = View.GONE
+                if(gyroscope.isVisible) gyroscope.visibility = View.GONE
+                if(accelerometer.isVisible) accelerometer.visibility = View.GONE
+                if(magnetometer.isVisible) magnetometer.visibility = View.GONE
             }
 
             //mainHandler.post(this)
@@ -517,11 +594,8 @@ class SensorDataFragment : Fragment() {
         val baseview = inflater.inflate(R.layout.sensors_fragment, container, false)
 
         gyroscope = baseview.findViewById<SensorChart>(R.id.gyroscope)
-        gyroContainer = baseview.findViewById<LinearLayout>(R.id.gyro_channel_container)
         accelerometer = baseview.findViewById<SensorChart>(R.id.accelerometer)
-        accContainer = baseview.findViewById<LinearLayout>(R.id.acc_channel_container)
         magnetometer = baseview.findViewById<SensorChart>(R.id.magnetometer)
-        magContainer = baseview.findViewById<LinearLayout>(R.id.mag_channel_container)
 
         gyroscope.streamTag = "Gyro"
         accelerometer.streamTag = "Acc"
