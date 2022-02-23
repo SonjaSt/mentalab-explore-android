@@ -5,7 +5,7 @@
 This markdown file contains equations written in LaTeX, which GitHub refuses to render (unlike Gitlab...), so I suggest to download this file and just view it with something like VS Code.
 
 ## Introduction
-The Mentalab Explore Android app is an app developed for Android, implemented in Kotlin and using SDK $\geq$ 24. It allows the user to connect to a previously paired Explore device and visualize its data streams in real time. The user can swipe between tab views to see charts displaying ExG data or sensor data (gyroscope, accelerometer, magnetometer). A tray at the bottom of the screen allows the user to perform quick actions, like setting a marker or pulling up visualization settings to change axis scales.
+The Mentalab Explore Android app is an app developed for Android, implemented in Kotlin and using SDK $\geq$ 24 (although minSDK can be set as low as 14 for the project to still build). It allows the user to connect to a previously paired Explore device and visualize its data streams in real time. The user can swipe between tab views to see charts displaying ExG data or sensor data (gyroscope, accelerometer, magnetometer). A tray at the bottom of the screen allows the user to perform quick actions, like setting a marker or pulling up visualization settings to change axis scales.
 
 <img src="./img/main_screen.jpg" alt="Screenshot of the main screen showing the aforementioned tab views" width="256"/>
 
