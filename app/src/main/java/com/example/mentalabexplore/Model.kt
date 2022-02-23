@@ -1,25 +1,32 @@
 package com.example.mentalabexplore
 
 import android.content.Context
+import android.net.Uri
+import android.os.Build
 import android.util.Log
+import android.widget.Switch
+import androidx.annotation.RequiresApi
 import com.mentalab.MentalabCodec
 import com.mentalab.MentalabCommands
+import com.mentalab.MentalabConstants
+import com.mentalab.RecordSubscriber
+import java.net.URI
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.math.absoluteValue
 
 object Model {
-    val keyGyro = "Gyro"
-    val keyMag = "Mag"
-    val keyAcc = "Acc"
-    val keyChannel = "Channel"
-    val keyTemperature = "Temperature"
-    val keyBattery = "Battery"
+    const val keyGyro = "Gyro"
+    const val keyMag = "Mag"
+    const val keyAcc = "Acc"
+    const val keyChannel = "Channel"
+    const val keyTemperature = "Temperature"
+    const val keyBattery = "Battery"
 
     var isConnected = false
     var connectedTo = ""
 
-    var refreshRate: Long = 30 // internal refresh rate, used when scheduling chart updates
+    var refreshRate: Long = 100 // internal refresh rate, used when scheduling chart updates
     var range_y = 2000.0f // range in uV
     var timeWindow = 10 // in seconds
     var timeGap = 2000L // distance of ticks to each other in ms, i.e. 2000 -> 2 seconds between ticks on x-Axis
@@ -45,7 +52,18 @@ object Model {
 
     fun changeTimeWindow(newTime: Int) {
         timeWindow = newTime
-        maxElements = newTime*1000 / refreshRate.toInt()
+        val newMax = newTime*1000 / refreshRate.toInt()
+        if(newMax < maxElements) {
+            for((i, c) in channelData.withIndex()) {
+                if(c.size > newMax) {
+                    // TODO: test this and make sure (c.size-newMax) is correct
+                    c.subList(0, (c.size-newMax)).clear()
+                    // Note: removing elements from the beginning of the channelData lists
+                    // will influence the average for the lists with the current implementation!
+                }
+            }
+        }
+        maxElements = newMax
     }
 
     fun scanDevices(applicationContext: Context): Set<String> {
@@ -108,10 +126,6 @@ object Model {
             else channelAverages[index] = ((numPoints-1) * channelAverages[index] + newDataPoint) / numPoints
         }
         else channelAverages[index] = channelAverages[index] + newDataPoint / channelData[index].size - removed / channelData[index].size
-
-        //if(index == 0) Log.d("AVG", "${channelAverages[index]}")
-        //if(index == 0) Log.d("DATAPOINT", "${newDataPoint}")
-        //if(index == 0) Log.d("MAP", dataMap.toString())
     }
 
     fun insertSensorDataFromDevice(s: String) {
@@ -183,11 +197,6 @@ object Model {
         }
     }
 
-    fun getDataAsMap(): Map<String, Queue<Float>>? {
-        if(!isConnected) return null
-        return dataMap
-    }
-
     fun getData(s: String): Queue<Float>? {
         if(!isConnected) return null
         val index = getChannelIndexFromString(s)
@@ -248,12 +257,6 @@ object Model {
         return channelAverages[index!!]
     }
 
-    fun getMax(s: String): Float {
-        //Log.d("MODEL string", s)
-        var index = getChannelIndexFromString(s)
-        return channelMaxes[index!!]
-    }
-
     fun getTemperatureString(): String {
         if(!isConnected || temperatureVals.size == 0) return ""
         var temperature = temperatureVals[0]
@@ -272,19 +275,6 @@ object Model {
         battery /= batteryVals.size
         if(battery <= minBattery) minBattery = battery
         return "${minBattery.toInt()}%"
-    }
-
-    fun secondsToMinutes(s: Long): String {
-        var mins = ""
-        var secs = ""
-        if(s/60 < 10) mins = "0${s/60}" else mins = "${s/60}"
-        if(s%60 < 10) secs = "0${s%60}" else secs = "${s%60}"
-
-        return "$mins:$secs"
-    }
-
-    fun millisToMinutes(s: Long): String {
-        return secondsToMinutes((s/1000).toLong())
     }
 
     fun timeWithLeadingZero(t: Long): String{
@@ -348,20 +338,6 @@ object Model {
         }
     }
 
-    fun updateDataCustomTimestamp(){
-        insertAllData()
-        if(timestamps.size >= maxElements) timestamps.remove()
-
-        var t: Long = TimeUnit.MILLISECONDS.toMillis(System.currentTimeMillis())
-        if (startTime == null) {
-            startTime = t
-            lastTime = 0
-        }
-        t -= startTime!!
-        markerTimestamps.add(t)
-        timestamps.add(t)
-    }
-
     fun setMarker(){
         if(startTime != null) markerTimestamps.add(TimeUnit.MILLISECONDS.toMillis(System.currentTimeMillis()) - startTime!!)
     }
@@ -381,21 +357,6 @@ object Model {
         timestamps.add(t)
 
         if(!markerTimestamps.isEmpty() && markerTimestamps.first < timestamps[0]) markerTimestamps.removeFirst()
-
-        /*
-        if (startTime == null) {
-            startTime = t
-            lastTime = 0
-            timestamps.add(0)
-        }
-
-        t -= startTime!!
-        if (t - lastTime!! >= 2000L) {
-            timestamps.add(t)
-            lastTime = t
-        } else timestamps.add(null)
-
-         */
     }
 
     fun clearAllData() {
@@ -421,5 +382,72 @@ object Model {
         }
 
         dataMap = null
+    }
+
+    fun formatDeviceMemory() {
+        MentalabCommands.formatDeviceMemory()
+    }
+
+    fun changeRange(newRange: String) {
+        var t = (newRange.subSequence(0, newRange.length-2) as String).toFloat()
+        if(newRange.contains("uV")) {
+            range_y = t*2.0f
+        }
+        if(newRange.contains("mV")){
+            range_y = t*2000.0f
+        }
+    }
+
+    // Needed for the y-axis scale spinner
+    fun rangeToSelection():Int {
+        return when(range_y) {
+            2.0f -> 0
+            10.0f -> 1
+            20.0f -> 2
+            200.0f -> 3
+            400.0f -> 4
+            1000.0f -> 5
+            2000.0f -> 6
+            10000.0f -> 7
+            20000.0f -> 8
+            200000.0f -> 9
+            else -> 6
+        }
+    }
+
+    // TODO: Make this work - currently not in use
+    // This function sets the new enabled channels and modules (in theory)
+    // The behaviour of the function isn't predictable, i.e. sending False for channel 1
+    // switches off some other channel (?)
+    fun setEnabledChannelsAndModules(activeChannelsMap: Map<String, Boolean>, activeModulesMap: Map<String, Boolean>): Boolean {
+        Log.d("MODEL_CHANNELS", activeChannelsMap.toString())
+        Log.d("MODEL_CHANNELS", activeModulesMap.toString())
+        try {
+            MentalabCommands.setEnabled(activeChannelsMap)
+            Log.d("MODEL_CHANNELS", "Channels set")
+            for ((key, value) in activeModulesMap) {
+                MentalabCommands.setEnabled(mapOf(key to value))
+                Log.d("MODEL_CHANNELS", "Module set")
+            }
+            //getDataFromDevice()
+            return true
+        }
+        catch(e: Exception) {
+            Log.d("MODEL_CHANNELS", e.toString())
+            return false
+        }
+
+    }
+
+    // I have no idea how to record data, as there is close to 0 documentation on this
+    @RequiresApi(Build.VERSION_CODES.Q)
+    fun recordData(c: Context) {
+        val s: Uri = Uri.parse("")
+        var sub : RecordSubscriber = RecordSubscriber.Builder(s, "recordedData", c).build()
+        MentalabCommands.record(sub)
+    }
+
+    fun pushDataToLSL() {
+        MentalabCommands.pushToLsl()
     }
 }

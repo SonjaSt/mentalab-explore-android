@@ -66,10 +66,10 @@
         app:layout_constraintStart_toStartOf="parent" >
 
         <ImageButton
-            android:id="@+id/imageButton3"
+            android:id="@+id/visualisation_button"
             android:layout_gravity="start"
             android:layout_marginStart="12dp"
-            android:src="@drawable/ic_baseline_settings_24"
+            android:src="@drawable/ic_baseline_tune_24"
             android:background="@drawable/tray_button_gray"
             android:layout_width="48dp"
             android:layout_height="48dp"
@@ -148,14 +148,60 @@
     android:background="#55000000"
     android:clickable="true"
     android:visibility="gone">
-    <View
+    <LinearLayout
         android:id="@+id/visualisation_settings"
         android:layout_width="300dp"
         android:layout_height="300dp"
-        android:background="@drawable/dialog_popup"
+        android:padding="24dp"
+        android:orientation="vertical"
         android:layout_gravity="center"
         android:visibility="gone"
-        ></View>
+        android:background="@drawable/dialog_popup">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="8dp"
+            android:text="@string/visualization_settings"
+            android:textSize="16sp" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="8dp"
+            android:text="@string/exg_chart_settings"
+            android:textColor="@color/mentalab_teal"
+            android:textSize="12sp" />
+        <LinearLayout
+            android:id="@+id/y_axis_scale"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:visibility="visible"
+            android:background="@drawable/dialog_popup">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Y-axis scale"
+                android:textSize="14sp" />
+
+            <Spinner
+                android:id="@+id/y_axis_spinner"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:spinnerMode="dropdown" />
+        </LinearLayout>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="8dp"
+            android:text="@string/general_chart_settings"
+            android:visibility="gone"
+            android:textColor="@color/mentalab_teal"
+            android:textSize="12sp" />
+    </LinearLayout>
     <View
         android:id="@+id/filter_settings"
         android:layout_width="300dp"
@@ -164,14 +210,22 @@
         android:layout_gravity="center"
         android:visibility="gone"
         ></View>
-    <View
+    <LinearLayout
         android:id="@+id/marker_settings"
         android:layout_width="300dp"
         android:layout_height="300dp"
-        android:background="@drawable/dialog_popup"
+        android:orientation="vertical"
         android:layout_gravity="center"
+        android:padding="24dp"
         android:visibility="gone"
-        ></View>
+        android:background="@drawable/dialog_popup">
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="8dp"
+            android:text="@string/marker_settings"
+            android:textSize="16sp" />
+    </LinearLayout>
     <View
         android:id="@+id/upload_settings"
         android:layout_width="300dp"

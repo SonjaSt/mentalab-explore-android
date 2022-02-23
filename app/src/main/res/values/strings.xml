@@ -50,4 +50,8 @@
     <string name="channel_8">Channel 8</string>
     <string name="delete_device_memory">Delete device memory</string>
     <string name="delete">DELETE</string>
+    <string name="visualization_settings">Visualization settings</string>
+    <string name="exg_chart_settings">ExG chart settings</string>
+    <string name="general_chart_settings">General chart settings</string>
+    <string name="marker_settings">Marker settings</string>
 </resources>

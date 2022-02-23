@@ -6,4 +6,23 @@
         <item>1000</item>
     </string-array>
 
+    <string-array name="y_axis_choices">
+        <item>1uV</item>
+        <item>5uV</item>
+        <item>10uV</item>
+        <item>100uV</item>
+        <item>200uV</item>
+        <item>500uV</item>
+        <item>1mV</item>
+        <item>5mV</item>
+        <item>10mV</item>
+        <item>100mV</item>
+    </string-array>
+
+    <string-array name="time_window_choices">
+        <item>5s</item>
+        <item>10s</item>
+        <item>20s</item>
+    </string-array>
+
 </resources>

@@ -8,7 +8,6 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.AttributeSet
-import android.util.Log
 import android.view.*
 import android.widget.LinearLayout
 import androidx.cardview.widget.CardView
@@ -27,14 +26,10 @@ class DataPagerAdapter(fragmentActivity: FragmentActivity, val fragments:ArrayLi
     override fun createFragment(position: Int): Fragment = fragments[position]
 }
 
-// TODO LineChart and Sensorchart should probably both be children of a chart class as they
-//  share a substantial amount of variables and (possibly?) code
-class LineChart @JvmOverloads constructor(
-    context: Context,
-    attrs: AttributeSet? = null,
-    defStyleAttr: Int = 0
-) : CardView(context, attrs, defStyleAttr) {
-    // streamTag determines what data is display by the chart, i.e. "Channel_1", "Gyro_Y" etc.
+open class ChartView @JvmOverloads constructor(
+    context: Context, attrs: AttributeSet? = null
+) : CardView(context, attrs) {
+
     var streamTag: String = ""
 
     var paddingHorizontal = 150.0f
@@ -52,31 +47,33 @@ class LineChart @JvmOverloads constructor(
     var spacehorizontal = 0.0f
     var spacevertical = 0.0f
 
-    // transform holds the transformation matrix applied to the incoming datapoints
     var transform: Matrix = Matrix()
 
+    protected val paint_line = Paint().apply {
+        color = 0xff000000.toInt()
+        strokeWidth = 2.0f
+    }
 
-    private val paint = Paint().apply {
-        color = 0xff000000.toInt() // this is fully opaque black
-        strokeWidth = 2.0f
-    }
-    private val paint_baseline = Paint().apply {
-        color = 0xffaaaaaa.toInt()
-        strokeWidth = 2.0f
-    }
-    private val paint_text = Paint().apply {
+    protected val paint_text = Paint().apply {
         color = 0xffaaaaaa.toInt()
         strokeWidth = 2.0f
         textAlign = Paint.Align.RIGHT
         textSize = 30.0f
     }
-    private val paint_marker = Paint().apply {
+
+    protected val paint_marker = Paint().apply {
         color = 0xffaa0000.toInt()
+        strokeWidth = 2.0f
+    }
+
+    protected val paint_baseline = Paint().apply {
+        color = 0xff000000.toInt()
         strokeWidth = 2.0f
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
+        // Set axis coordinates depending on height and width of our View
         yAxisY2 = this.measuredHeight.toFloat() - paddingVertical
         xAxisX2 = this.measuredWidth.toFloat()
         xAxisY = yAxisY2
@@ -86,11 +83,53 @@ class LineChart @JvmOverloads constructor(
         spacevertical = this.measuredHeight - 2*paddingVertical
     }
 
+    // Draws axes
+    override fun onDraw(canvas: Canvas?) {
+
+        canvas?.drawLine(yAxisX, yAxisY1, yAxisX, yAxisY2, paint_line) // y-Axis
+        canvas?.drawLine(xAxisX1, xAxisY, xAxisX2, xAxisY, paint_line) // x-Axis
+        val avgY = (yAxisY2-yAxisY1)/2 + paddingVertical
+        canvas?.drawLine(xAxisX1, avgY, xAxisX2, avgY, paint_baseline) // Horizontal baseline
+
+        if(!Model.isConnected || Model.getData(streamTag) == null) return
+        if(Model.timestamps == null || Model.timestamps.isEmpty()) return
+
+        var firstTime = Long.MIN_VALUE
+        // search for the tick start time
+        for(i in Model.timestamps.first..(Model.timestamps.first+Model.timeGap)) {
+            if (i % Model.timeGap < Model.refreshRate*2) {
+                firstTime = i
+                break
+            }
+        }
+        // draw the ticks on the x-axis with corresponding time stamps
+        // Model.timeGap tells us how far apart the ticks should be
+        for(i in firstTime..Model.timestamps.last step Model.timeGap) {
+            var x =
+                (i - Model.timestamps.first) / (Model.timestamps.last - Model.timestamps.first).toFloat() * spacehorizontal + paddingHorizontal
+            canvas?.drawLine(x, xAxisY + 5.0f, x, xAxisY - 5.0f, paint_baseline)
+            paint_text.textAlign = Paint.Align.CENTER
+            canvas?.drawText(Model.millisToHours(i), x, xAxisY + 10.0f + paint_text.textSize, paint_text)
+        }
+
+        for((i, m) in Model.markerTimestamps.withIndex()){
+            val rangeMin = Model.timestamps.first
+            val rangeMax = Model.timestamps.last
+            if(m < rangeMin) continue
+            // find out x
+            var x = ((m - rangeMin) / (rangeMax - rangeMin).toFloat()) * spacehorizontal + paddingHorizontal
+            canvas?.drawLine(x, 0.0f, x, this.measuredHeight.toFloat(), paint_marker)
+        }
+    }
+}
+
+class ExGChart(context: Context, attrs: AttributeSet? = null) : ChartView(context, attrs) {
+
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
 
-        val avgY = (yAxisY2-yAxisY1)/2 + paddingVertical
-        canvas?.drawLine(xAxisX1, avgY, xAxisX2, avgY, paint_baseline) // Horizontal baseline
+        if(!Model.isConnected || Model.getData(streamTag) == null) return
+        if(Model.timestamps == null || Model.timestamps.isEmpty()) return
 
         paint_text.textAlign = Paint.Align.RIGHT
         canvas?.drawText("(+${Model.scaleToVolts()})", yAxisX-10.0f, yAxisY1+paint_text.textSize, paint_text)
@@ -98,13 +137,6 @@ class LineChart @JvmOverloads constructor(
         paint_text.textAlign = Paint.Align.LEFT
         canvas?.drawText("ch${streamTag.last()}", 10.0f, this.measuredHeight/2.0f, paint_text)
 
-        canvas?.drawLine(yAxisX, yAxisY1, yAxisX, yAxisY2, paint) // y-Axis
-        canvas?.drawLine(xAxisX1, xAxisY, xAxisX2, xAxisY, paint) // x-Axis
-
-        if(!Model.isConnected || Model.getData(streamTag) == null) return
-        if(Model.timestamps == null || Model.timestamps.isEmpty()) return
-
-        //val mVals: FloatArray = floatArrayOf(this.measuredWidth.toFloat()/Model.maxElements, 0.0f, 0.0f, 0.0f, 1.0f/scale_y, (this.measuredHeight.toFloat()/2) - (Model.getAverage(streamTag)/scale_y), 0.0f, 0.0f, 1.0f)
         var xNum = Model.getData(streamTag)!!.size
         if(xNum < 1) xNum = Model.maxElements
 
@@ -126,7 +158,9 @@ class LineChart @JvmOverloads constructor(
             0.0f, 0.0f, 1.0f)
         transform.setValues(mVals)
 
-        //Make an array of points for the transformation [x1, y1, x2, y2, ..., x_n, y_n]
+        // TODO: allocate memory at instantiation for max data size
+        // In theory, this size can change at runtime up to some fixed max value
+        // Make an array of points for the transformation [x1, y1, x2, y2, ..., x_n, y_n]
         var transPoints: FloatArray = FloatArray(2*(Model.getData(streamTag)!!.size))
         for((i, datapoint) in Model.getData(streamTag)!!.withIndex()) {
             transPoints.set(i*2, i.toFloat())
@@ -144,309 +178,108 @@ class LineChart @JvmOverloads constructor(
         for(i in 0..(transPoints.size-1) step 2) {
             end_x = transPoints[i]
             end_y = transPoints[i+1]
-            canvas?.drawLine(start_x, start_y, end_x, end_y, paint)
-            /*
-            Model.timestamps[i/2]?.let{
-                // Draw the tick on the x-axis
-            var x = (i / 2) * (spacehorizontal) / xNum + paddingHorizontal
-                canvas?.drawLine(x, xAxisY + 5.0f, x, xAxisY - 5.0f, paint_baseline)
-                paint_text.textAlign = Paint.Align.CENTER
-                canvas?.drawText(
-                    Model.millisToHours(it),
-                    x,
-                    xAxisY + 10.0f + paint_text.textSize,
-                    paint_text
-                ) // it = Model.timestamps[i/2]
-            }
-             */
+            canvas?.drawLine(start_x, start_y, end_x, end_y, paint_line)
             start_x = transPoints[i]
             start_y = transPoints[i+1]
-        }
-
-        var firstTime = Long.MIN_VALUE
-        // search for the tick start time
-        for(i in Model.timestamps.first..(Model.timestamps.first+Model.timeGap)) {
-            if (i % Model.timeGap < Model.refreshRate*2) {
-                firstTime = i
-                break
-            }
-        }
-        for(i in firstTime..Model.timestamps.last step Model.timeGap) {
-            //var x = i * spacehorizontal / Model.timestamps.size + paddingHorizontal // We can't divide through 0 here as this is only executed if there is at least one value in timestamps
-            var x =
-                (i - Model.timestamps.first) / (Model.timestamps.last - Model.timestamps.first).toFloat() * spacehorizontal + paddingHorizontal
-            canvas?.drawLine(
-                x,
-                xAxisY + 5.0f,
-                x,
-                xAxisY - 5.0f,
-                paint_baseline
-            )
-            paint_text.textAlign = Paint.Align.CENTER
-            canvas?.drawText(
-                Model.millisToHours(i), // it = Model.timestamps[i]
-                x,
-                xAxisY + 10.0f + paint_text.textSize,
-                paint_text
-            )
-        }
-
-        for((i, m) in Model.markerTimestamps.withIndex()){
-            val rangeMin = Model.timestamps.first
-            val rangeMax = Model.timestamps.last
-            if(m < rangeMin) continue
-            // find out x
-            var x = ((m - rangeMin) / (rangeMax - rangeMin).toFloat()) * spacehorizontal + paddingHorizontal
-            canvas?.drawLine(x, 0.0f, x, this.measuredHeight.toFloat(), paint_marker)
         }
     }
 }
 
-// A lot of this is very similar to the Linechart class
-// TODO: Use a matrix to transform sensor data depending on sensor maxes
-class SensorChart @JvmOverloads constructor(
-    context: Context,
-    attrs: AttributeSet? = null,
-    defStyleAttr: Int = 0
-) : CardView(context, attrs, defStyleAttr) {
-    var matrices: Array<Matrix> = arrayOf(Matrix(), Matrix(), Matrix())
+class SensorChart(context: Context, attrs: AttributeSet? = null) : ChartView(context, attrs) {
 
-    var streamTag: String = ""
+    val RED = 0xFFFF0000.toInt()
+    val GREEN = 0xFF00FF00.toInt()
+    val BLUE = 0xFF0000FF.toInt()
+
+    var paint = Paint().apply {
+        strokeWidth = 2.0f
+    }
+
     var ind = -1
+    var textWidth = 0.0f
+    var lineSpace = 0.0f
 
-    var paddingHorizontal = 150.0f
-    var paddingVertical = 60.0f
-
-    var yAxisX = paddingHorizontal
-    var yAxisY1 = paddingVertical
-    var yAxisY2 = yAxisY1
-
-    var xAxisX1 = yAxisX
-    var xAxisX2 = xAxisX1
-    var xAxisY = yAxisY2
-
-    var spacehorizontal = 0.0f
-    var spacevertical = 0.0f
-
-    private val paint = Paint().apply {
-        color = 0xff000000.toInt() // this is fully opaque red
-        strokeWidth = 2.0f
-    }
-
-    private val paint_red = Paint().apply {
-        color = 0xffff0000.toInt() // this is fully opaque red
-        strokeWidth = 2.0f
-    }
-
-    private val paint_green = Paint().apply {
-        color = 0xff00ff00.toInt() // this is fully opaque red
-        strokeWidth = 2.0f
-    }
-
-    private val paint_blue = Paint().apply {
-        color = 0xff0000ff.toInt() // this is fully opaque red
-        strokeWidth = 2.0f
-    }
-
-    private val paint_text = Paint().apply {
-        color = 0xffaaaaaa.toInt()
-        strokeWidth = 2.0f
-        textAlign = Paint.Align.LEFT
-        textSize = 30.0f
-    }
-
-    private val paint_baseline = Paint().apply {
-        color = 0xffaaaaaa.toInt()
-        strokeWidth = 2.0f
-    }
-
-    private val paint_marker = Paint().apply {
-        color = 0xffaa0000.toInt()
-        strokeWidth = 2.0f
-    }
+    lateinit var tags: Array<String>
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
-        yAxisY2 = this.measuredHeight.toFloat() - paddingVertical
-        xAxisX2 = this.measuredWidth.toFloat()
-        xAxisY = yAxisY2
-
-        spacehorizontal = this.measuredWidth - paddingHorizontal // pad only on the left
-        spacevertical = this.measuredHeight - 2*paddingVertical
-
         when(streamTag) {
             "Gyro" -> ind = 0
             "Acc" -> ind = 1
             "Mag" -> ind = 2
         }
+
+        textWidth = paint_text.measureText(streamTag+"_X")
+        lineSpace = textWidth/2.0f
+
+        tags = arrayOf("${streamTag}_X", "${streamTag}_Y", "${streamTag}_Z")
     }
 
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
 
-        //Log.d("ONDRAW", "streamtag: $streamTag")
-
-        canvas?.drawLine(yAxisX, yAxisY1, yAxisX, yAxisY2, paint) // y-Axis
-        canvas?.drawLine(xAxisX1, xAxisY, xAxisX2, xAxisY, paint) // x-Axis
-
-        val tags: Array<String> = arrayOf("${streamTag}_X", "${streamTag}_Y", "${streamTag}_Z")
+        if(!Model.isConnected) return
+        if(Model.timestamps == null || Model.timestamps.isEmpty()) return
 
         paint_text.textAlign = Paint.Align.LEFT
         canvas?.drawText("$streamTag", 10.0f, this.measuredHeight/2.0f, paint_text)
 
-        var textWidth = paint_text.measureText(streamTag+"_X")
-        var lineSpace = textWidth/2.0f
-        paint_text.textAlign = Paint.Align.LEFT
-        canvas?.drawText(streamTag+"_X", this.measuredWidth.toFloat()-(textWidth+lineSpace)*3, paint_text.textSize+10.0f, paint_text)
-        canvas?.drawLine(this.measuredWidth.toFloat()-(textWidth+lineSpace)*2.0f-3.0f*lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, this.measuredWidth.toFloat()-(textWidth+lineSpace)*2.0f-lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, paint_red)
-        canvas?.drawText(streamTag+"_Y", this.measuredWidth.toFloat()-(textWidth+lineSpace)*2, paint_text.textSize+10.0f, paint_text)
-        canvas?.drawLine(this.measuredWidth.toFloat()-(textWidth+lineSpace)-3.0f*lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, this.measuredWidth.toFloat()-(textWidth+lineSpace)-lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, paint_green)
-        canvas?.drawText(streamTag+"_Z", this.measuredWidth.toFloat()-(textWidth+lineSpace), paint_text.textSize+10.0f, paint_text)
-        canvas?.drawLine(this.measuredWidth.toFloat()-3.0f*lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, this.measuredWidth.toFloat()-lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, paint_blue)
+        var xNum = Model.getData(tags[0])!!.size
+        var mVals = floatArrayOf(
+            (spacehorizontal)/xNum, 0.0f, paddingHorizontal,
+            0.0f, -spacevertical/(2.0f * Model.sensorMaxes[ind].absoluteValue), spacevertical/2.0f + paddingVertical,
+            0.0f, 0.0f, 1.0f)
+        transform.setValues(mVals)
 
-        if(!Model.isConnected) return
-        if(Model.timestamps == null || Model.timestamps.isEmpty()) return
+        // TODO: allocate memory at instantiation for max data size
+        //Make an array of points for the transformation [x1, y1, x2, y2, ..., x_n, y_n]
+        var transPoints: Array<FloatArray> = arrayOf(FloatArray(2*(Model.getData(tags[0])!!.size)), FloatArray(2*(Model.getData(tags[1])!!.size)), FloatArray(2*(Model.getData(tags[2])!!.size)))
+        for(j in 0..2) {
+            for((i, datapoint) in Model.getData(tags[j])!!.withIndex()) {
+                transPoints[j].set(i*2, i.toFloat())
+                transPoints[j].set(i*2+1, datapoint)
+            }
+            transform.mapPoints(transPoints[j])
 
-        for(tag in tags) {
-            var datapoints = Model.getData(tag)
-            if(datapoints == null) continue
-
-            var xNum = datapoints.size
-            if(xNum < 1) xNum = Model.maxElements
-
-            var mVals = floatArrayOf(
-                spacehorizontal/xNum, 0.0f, paddingHorizontal,
-                0.0f, -1.0f/Model.sensorMaxes[ind].absoluteValue * spacevertical, 0.0f,
-                0.0f, 0.0f, 1.0f)
-            matrices[ind].setValues(mVals)
-
-            var start: Float? = null
-            var end = 0.0f
-
-            var lastTimeStamp: Long? = null
-            for ((i, datapoint) in datapoints.withIndex()) {
-
-                end = datapoint
-
-                start?.let {
-                    //Log.d("CURRENT STREAMTAG", streamTag)
-                    var startY =
-                        yAxisY2 - (start!! + Model.sensorMaxes[ind].absoluteValue) / (2.0f * Model.sensorMaxes[ind].absoluteValue) * spacevertical
-                    //startY = start!! * spacevertical/2.0f * Model.sensorMaxes[ind].absoluteValue + paddingVertical + spacevertical/2.0f
-                    var stopY =
-                        yAxisY2 - (end!! + Model.sensorMaxes[ind].absoluteValue) / (2.0f * Model.sensorMaxes[ind].absoluteValue) * spacevertical
-                    //stopY = end!! * spacevertical/2.0f * Model.sensorMaxes[ind].absoluteValue + paddingVertical + spacevertical/2.0f
-                    //Log.d("ONDRAW", "Start Y: $startY")
-                    //Log.d("ONDRAW", "Stop Y: $stopY")
-                    //Log.d("ONDRAW", "Y Axis Start Y: $yAxisY1")
-                    //Log.d("ONDRAW", "Y Axis Stop Y: $yAxisY2")
-                    //Log.d("ONDRAW", "DATAPOINT: $end")
-                    var p = paint
-                    when(tag.last()){
-                        'X' -> p = paint_red
-                        'Y' -> p = paint_green
-                        'Z' -> p = paint_blue
-
-                    }
-                    canvas?.drawLine(
-                        (i - 1) * spacehorizontal / datapoints.size + paddingHorizontal,
-                        startY,
-                        i * spacehorizontal / datapoints.size + paddingHorizontal,
-                        stopY,
-                        p
-                    )
-                    //canvas?.drawLine(0.0f, 0.0f, this.measuredWidth.toFloat(), this.measuredHeight.toFloat(), paint)
+            // TODO: simplify this (use j to determine spacing)
+            // draw keys (i.e. Gyro_X + red line)
+            when(j) {
+                0 -> {
+                    paint.setColor(RED)
+                    canvas?.drawText(streamTag+"_X", this.measuredWidth.toFloat()-(textWidth+lineSpace)*3, paint_text.textSize+10.0f, paint_text)
+                    canvas?.drawLine(this.measuredWidth.toFloat()-(textWidth+lineSpace)*2.0f-3.0f*lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, this.measuredWidth.toFloat()-(textWidth+lineSpace)*2.0f-lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, paint)
                 }
-
-                /*
-
-                if(tag.last() == 'X') {
-                    // Draw the ticks on the x-axis
-                    // var x = i * (this.measuredWidth.toFloat() - paddingHorizontal) / xNum + paddingHorizontal
-                    var x = i * spacehorizontal / Model.timestamps.size + paddingHorizontal // We can't divide through 0 here as this is only executed if there is at least one value in timestamps
-                    // This if will almost always work, except when there hasn't been a refresh
-                    // right after the 0, 2, 4, 6... mark
-                    if(Model.timestamps[i] % (Model.timeGap * 1000) < Model.refreshRate) {
-                        Log.d("TIMESTAMP", "${Model.timestamps[i]}")
-                        //canvas?.drawLine(x, xAxisY, x, xAxisY - 5.0f, paint_text)
-                        canvas?.drawLine(
-                            x,
-                            xAxisY + 5.0f,
-                            x,
-                            xAxisY - 5.0f,
-                            paint_baseline
-                        )
-                        paint_text.textAlign = Paint.Align.CENTER
-                        canvas?.drawText(
-                            Model.millisToHours(Model.timestamps[i]), // it = Model.timestamps[i]
-                            x,
-                            xAxisY + 10.0f + paint_text.textSize,
-                            paint_text
-                        )
-                    }
-                    /*
-                    if(Model.timestamps[i] == Model.markerTimestamp) {
-                        paint_marker.color = Model.markerColor.toInt()
-                        canvas?.drawLine(x, 0.0f, x, xAxisY + 5.0f, paint_marker)
-                        paint_text.textAlign = Paint.Align.CENTER
-                    }
-
-                     */
+                1 -> {
+                    paint.setColor(GREEN)
+                    canvas?.drawText(streamTag+"_Y", this.measuredWidth.toFloat()-(textWidth+lineSpace)*2, paint_text.textSize+10.0f, paint_text)
+                    canvas?.drawLine(this.measuredWidth.toFloat()-(textWidth+lineSpace)-3.0f*lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, this.measuredWidth.toFloat()-(textWidth+lineSpace)-lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, paint)
                 }
-                 */
+                2 -> {
+                    paint.setColor(BLUE)
+                    canvas?.drawText(streamTag+"_Z", this.measuredWidth.toFloat()-(textWidth+lineSpace), paint_text.textSize+10.0f, paint_text)
+                    canvas?.drawLine(this.measuredWidth.toFloat()-3.0f*lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, this.measuredWidth.toFloat()-lineSpace/4.0f, (paint_text.textSize/2.0f)+10.0f, paint)
+                }
+            }
 
-                start = datapoint
+            var start_x = if (transPoints[j].size >= 2) transPoints[j][0] else 0.0f
+            var start_y = if (transPoints[j].size >= 2) transPoints[j][1] else 0.0f
+            var end_x: Float
+            var end_y: Float
+
+            // go through all available points and draw a line to it from the last point
+            for(i in 0..(transPoints[j].size-1) step 2) {
+                end_x = transPoints[j][i]
+                end_y = transPoints[j][i+1]
+                canvas?.drawLine(start_x, start_y, end_x, end_y, paint)
+                start_x = transPoints[j][i]
+                start_y = transPoints[j][i+1]
             }
         }
-
-        var firstTime = Long.MIN_VALUE
-        // search for the tick start time
-        for(i in Model.timestamps.first..(Model.timestamps.first+Model.timeGap)) {
-            if (i % Model.timeGap < Model.refreshRate*2) {
-                firstTime = i
-                break
-            }
-        }
-        for(i in firstTime..Model.timestamps.last step Model.timeGap) {
-            //var x = i * spacehorizontal / Model.timestamps.size + paddingHorizontal // We can't divide through 0 here as this is only executed if there is at least one value in timestamps
-            var x =
-                (i - Model.timestamps.first) / (Model.timestamps.last - Model.timestamps.first).toFloat() * spacehorizontal + paddingHorizontal
-            canvas?.drawLine(
-                x,
-                xAxisY + 5.0f,
-                x,
-                xAxisY - 5.0f,
-                paint_baseline
-            )
-            paint_text.textAlign = Paint.Align.CENTER
-            canvas?.drawText(
-                Model.millisToHours(i), // it = Model.timestamps[i]
-                x,
-                xAxisY + 10.0f + paint_text.textSize,
-                paint_text
-            )
-        }
-
-        for((i, m) in Model.markerTimestamps.withIndex()){
-            val rangeMin = Model.timestamps.first
-            val rangeMax = Model.timestamps.last
-            if(m < rangeMin) continue
-            // find out x
-            var x = ((m - rangeMin) / (rangeMax - rangeMin).toFloat()) * spacehorizontal + paddingHorizontal
-            canvas?.drawLine(x, 0.0f, x, this.measuredHeight.toFloat(), paint_marker)
-        }
-
         paint_text.textAlign = Paint.Align.RIGHT
-        val range = Model.sensorMaxes[ind].roundToInt()
+        val range = Model.sensorMaxes[ind].roundToInt().absoluteValue
         canvas?.drawText("+$range", yAxisX-10.0f, yAxisY1, paint_text)
         canvas?.drawText("0", yAxisX-10.0f, this.measuredHeight/2.0f, paint_text)
         canvas?.drawText("-$range", yAxisX-10.0f, yAxisY2, paint_text)
-
-        val avgY = this.measuredHeight / 2.0f
-        //val realZero = Model.getAverage()/1000 * spacevertical + paddingVertical
-        canvas?.drawLine(yAxisX, avgY, this.measuredWidth.toFloat(), avgY, paint_baseline)
-        //canvas?.drawLine() // Baseline
-        //canvas?.drawLine(yAxisX-5.0f, realZero, yAxisX+5.0f, realZero, paint)
     }
 }
 
@@ -454,7 +287,7 @@ class ExgDataFragment : Fragment() {
 
     lateinit var mainHandler : Handler
 
-    var channels: MutableList<LineChart> = mutableListOf()
+    var channels: MutableList<ExGChart> = mutableListOf()
     val maxCharts = 8
 
 
@@ -465,7 +298,6 @@ class ExgDataFragment : Fragment() {
                 if(activeChannels != null) {
                     for (i in 1..maxCharts) {
                         if (activeChannels.contains("Channel_${i}")) {
-                            //Log.d("Active channels", "Channel_${i-1}")
                             if (channels[i - 1].isGone) channels[i - 1].visibility = View.VISIBLE
                             channels[i-1].invalidate()
                         }
@@ -503,14 +335,14 @@ class ExgDataFragment : Fragment() {
         // I realize this is pretty long and it'd be better to add charts programmatically,
         // but I had some trouble with that and thought it wasn't too important since the
         // amount of channels doesn't exceed 8
-        channels.add(baseView.findViewById<LineChart>(R.id.exg_channel_1))
-        channels.add(baseView.findViewById<LineChart>(R.id.exg_channel_2))
-        channels.add(baseView.findViewById<LineChart>(R.id.exg_channel_3))
-        channels.add(baseView.findViewById<LineChart>(R.id.exg_channel_4))
-        channels.add(baseView.findViewById<LineChart>(R.id.exg_channel_5))
-        channels.add(baseView.findViewById<LineChart>(R.id.exg_channel_6))
-        channels.add(baseView.findViewById<LineChart>(R.id.exg_channel_7))
-        channels.add(baseView.findViewById<LineChart>(R.id.exg_channel_8))
+        channels.add(baseView.findViewById<ExGChart>(R.id.exg_channel_1))
+        channels.add(baseView.findViewById<ExGChart>(R.id.exg_channel_2))
+        channels.add(baseView.findViewById<ExGChart>(R.id.exg_channel_3))
+        channels.add(baseView.findViewById<ExGChart>(R.id.exg_channel_4))
+        channels.add(baseView.findViewById<ExGChart>(R.id.exg_channel_5))
+        channels.add(baseView.findViewById<ExGChart>(R.id.exg_channel_6))
+        channels.add(baseView.findViewById<ExGChart>(R.id.exg_channel_7))
+        channels.add(baseView.findViewById<ExGChart>(R.id.exg_channel_8))
 
         // Add a tag to every channel so we know what data to draw
         for(i in 1..8){
