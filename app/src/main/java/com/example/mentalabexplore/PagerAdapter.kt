@@ -443,11 +443,11 @@ class SensorDataFragment : Fragment() {
         magnetometer = baseview.findViewById<SensorChart>(R.id.magnetometer)
 
         gyroscope.streamTag = "Gyro"
-        gyroscope.index = 14
+        gyroscope.index = 11
         accelerometer.streamTag = "Acc"
         accelerometer.index = 8
         magnetometer.streamTag = "Mag"
-        magnetometer.index = 11
+        magnetometer.index = 14
 
         mainHandler = Handler(Looper.getMainLooper())
 

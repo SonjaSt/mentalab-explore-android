@@ -189,10 +189,10 @@ object Model {
             var ind = -1
             when {
                 i+8 < 11 -> {
-                    ind = 0
+                    ind = 1
                 }
                 i+8 < 14 -> {
-                    ind = 1
+                    ind = 0
                 }
                 else -> {
                     ind = 2
