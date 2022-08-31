@@ -2,6 +2,7 @@ package com.example.mentalabexplore
 
 import android.content.DialogInterface
 import android.content.Intent
+import android.graphics.Bitmap
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
@@ -12,12 +13,16 @@ import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.Toolbar
 import androidx.core.app.NavUtils
+import com.mentalab.utils.ConfigSwitch
+import com.mentalab.utils.constants.ConfigProtocol
+import com.mentalab.utils.constants.SamplingRate
 import java.lang.Exception
+import java.util.concurrent.TimeUnit
 
 class Settings : AppCompatActivity() {
     lateinit var mainHandler: Handler
-    var activeChannels: MutableList<Switch> = mutableListOf<Switch>()
-    var activeModules: MutableList<Switch> = mutableListOf<Switch>()
+    var activeChannels: MutableList<Switch> = mutableListOf()
+    var activeModules: MutableList<Switch> = mutableListOf()
 
     lateinit var connectedName: TextView
     lateinit var temperature: TextView
@@ -68,10 +73,19 @@ class Settings : AppCompatActivity() {
         activeChannels.add(findViewById(R.id.ch2_switch))
         activeChannels.add(findViewById(R.id.ch3_switch))
         activeChannels.add(findViewById(R.id.ch4_switch))
-        activeChannels.add(findViewById(R.id.ch5_switch))
-        activeChannels.add(findViewById(R.id.ch6_switch))
-        activeChannels.add(findViewById(R.id.ch7_switch))
-        activeChannels.add(findViewById(R.id.ch8_switch))
+        if (Model.isConnected) {
+            if (Model.device!!.channelCount.asInt == 8) {
+                activeChannels.add(findViewById(R.id.ch5_switch))
+                activeChannels.add(findViewById(R.id.ch6_switch))
+                activeChannels.add(findViewById(R.id.ch7_switch))
+                activeChannels.add(findViewById(R.id.ch8_switch))
+            } else {
+                findViewById<Switch>(R.id.ch5_switch).visibility = View.GONE
+                findViewById<Switch>(R.id.ch6_switch).visibility = View.GONE
+                findViewById<Switch>(R.id.ch7_switch).visibility = View.GONE
+                findViewById<Switch>(R.id.ch8_switch).visibility = View.GONE
+            }
+        }
 
         setChannelSwitchStates()
 
@@ -85,18 +99,31 @@ class Settings : AppCompatActivity() {
 
     fun setChannelSwitchStates() {
         val channels = Model.getActiveChannels()
-        for(i in 0..7) {
+        for(i in 0..3) {
             activeChannels[i].isChecked =
-                !(channels == null || !channels.contains("Channel_${i+1}"))
+                !(channels == null || channels[i])
+        }
+        if(Model.device != null){
+            for(i in 4..7) {
+                activeChannels[i].isChecked =
+                    !(channels == null || channels[i])
+            }
         }
     }
 
+    /*
     fun setModuleSwitchStates() {
         val keys = Model.getDeviceKeys()
         val channel = Model.getActiveChannels()
-        activeModules[0].isChecked =  !(channel == null || channel.isEmpty())
+        activeModules[0].isChecked = !(channel == null || channel.isEmpty())
         activeModules[1].isChecked = !(keys == null || !keys.contains("Acc_X"))
         //activeModules[2].isChecked = !(keys == null || !keys.contains("Temperature "))
+    }
+    */
+
+    fun setModuleSwitchStates() {
+        activeModules[0].isChecked = true
+        activeModules[1].isChecked = true
     }
 
     override fun onPause() {
@@ -127,28 +154,21 @@ class Settings : AppCompatActivity() {
         // So, calling the setEnabled function from the API has some odd behaviour that I can't really explain or understand
         // For example, switching off the ExG module actually switches off the Orientation module
         // For this reason, the button is turned off (basically)
-        return
-        var activeChannelsMap = mapOf("CHANNEL_0" to activeChannels[0].isChecked!!,
-            "CHANNEL_1" to activeChannels[1].isChecked!!,
-            "CHANNEL_2" to activeChannels[2].isChecked!!,
-            "CHANNEL_3" to activeChannels[3].isChecked!!,
-            "CHANNEL_4" to activeChannels[4].isChecked!!,
-            "CHANNEL_5" to activeChannels[5].isChecked!!,
-            "CHANNEL_6" to activeChannels[6].isChecked!!,
-            "CHANNEL_7" to activeChannels[7].isChecked!!)
-        var activeModulesMap = mapOf("ModuleExg" to activeModules[0].isChecked!!,
-            "ModuleOrn" to activeModules[1].isChecked!!)
-
-        val res = Model.setEnabledChannelsAndModules(activeChannelsMap, activeModulesMap)
-        if(!res) {
-            var t = Toast.makeText(this, "Could not apply changes - are you trying to enable channels that are not available?", Toast.LENGTH_SHORT)
-            t.show()
-            //Model.getDataFromDevice()
-            setChannelSwitchStates()
-            setModuleSwitchStates()
-            return
+        var r = Model.device!!.setChannel(ConfigSwitch(ConfigProtocol.CHANNEL_0, false))
+        var w = Model.device!!.setSamplingRate(SamplingRate.SR_500)
+        Model.device!!.channelCount.asInt
+        if(r.get(2000, TimeUnit.MILLISECONDS)) {
+            // Do something
         }
-        // TODO: apply settings
+        else {
+            Toast.makeText(this, "Failed to set channel", Toast.LENGTH_SHORT)
+        }
+
+        var l = mutableListOf<Boolean>()
+        for(switch in activeChannels) {
+            l.add(switch.isChecked)
+        }
+        Model.setChannels(l)
         NavUtils.navigateUpFromSameTask(this)
         this.overridePendingTransition(0, 0)
         finish()

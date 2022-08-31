@@ -16,6 +16,10 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
+import com.mentalab.packets.sensors.exg.EEGPacket
+import java.util.*
+import java.util.concurrent.atomic.AtomicReference
+import kotlin.collections.ArrayList
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
@@ -29,8 +33,8 @@ class DataPagerAdapter(fragmentActivity: FragmentActivity, val fragments:ArrayLi
 open class ChartView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : CardView(context, attrs) {
-
     var streamTag: String = ""
+    var index: Int = -1
 
     var paddingHorizontal = 150.0f
     var paddingVertical = 60.0f
@@ -91,7 +95,7 @@ open class ChartView @JvmOverloads constructor(
         val avgY = (yAxisY2-yAxisY1)/2 + paddingVertical
         canvas?.drawLine(xAxisX1, avgY, xAxisX2, avgY, paint_baseline) // Horizontal baseline
 
-        if(!Model.isConnected || Model.getData(streamTag) == null) return
+        if(!Model.isConnected || Model.getData(index) == null) return
         if(Model.timestamps == null || Model.timestamps.isEmpty()) return
 
         var firstTime = Long.MIN_VALUE
@@ -128,7 +132,7 @@ class ExGChart(context: Context, attrs: AttributeSet? = null) : ChartView(contex
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
 
-        if(!Model.isConnected || Model.getData(streamTag) == null) return
+        if(!Model.isConnected || Model.getData(index) == null) return
         if(Model.timestamps == null || Model.timestamps.isEmpty()) return
 
         paint_text.textAlign = Paint.Align.RIGHT
@@ -137,7 +141,7 @@ class ExGChart(context: Context, attrs: AttributeSet? = null) : ChartView(contex
         paint_text.textAlign = Paint.Align.LEFT
         canvas?.drawText("ch${streamTag.last()}", 10.0f, this.measuredHeight/2.0f, paint_text)
 
-        var xNum = Model.getData(streamTag)!!.size
+        var xNum = Model.getData(index)!!.size
         if(xNum < 1) xNum = Model.maxElements
 
         // (width/max_elements)    0              padding_left
@@ -154,15 +158,15 @@ class ExGChart(context: Context, attrs: AttributeSet? = null) : ChartView(contex
 
         var mVals = floatArrayOf(
             (spacehorizontal)/xNum, 0.0f, paddingHorizontal,
-            0.0f, -1.0f/Model.range_y*spacevertical, Model.getAverage(streamTag)/Model.range_y*spacevertical+(spacevertical/2.0f)+paddingVertical,
+            0.0f, -1.0f/Model.range_y*spacevertical, Model.getAverage(index)/Model.range_y*spacevertical+(spacevertical/2.0f)+paddingVertical,
             0.0f, 0.0f, 1.0f)
         transform.setValues(mVals)
 
         // TODO: allocate memory at instantiation for max data size
         // In theory, this size can change at runtime up to some fixed max value
         // Make an array of points for the transformation [x1, y1, x2, y2, ..., x_n, y_n]
-        var transPoints: FloatArray = FloatArray(2*(Model.getData(streamTag)!!.size))
-        for((i, datapoint) in Model.getData(streamTag)!!.withIndex()) {
+        var transPoints: FloatArray = FloatArray(2*(Model.getData(index)!!.size))
+        for((i, datapoint) in Model.getData(index)!!.withIndex()) {
             transPoints.set(i*2, i.toFloat())
             transPoints.set(i*2+1, datapoint)
         }
@@ -224,7 +228,7 @@ class SensorChart(context: Context, attrs: AttributeSet? = null) : ChartView(con
         paint_text.textAlign = Paint.Align.LEFT
         canvas?.drawText("$streamTag", 10.0f, this.measuredHeight/2.0f, paint_text)
 
-        var xNum = Model.getData(tags[0])!!.size
+        var xNum = Model.getData(index)!!.size
         var mVals = floatArrayOf(
             (spacehorizontal)/xNum, 0.0f, paddingHorizontal,
             0.0f, -spacevertical/(2.0f * Model.sensorMaxes[ind].absoluteValue), spacevertical/2.0f + paddingVertical,
@@ -233,9 +237,9 @@ class SensorChart(context: Context, attrs: AttributeSet? = null) : ChartView(con
 
         // TODO: allocate memory at instantiation for max data size
         //Make an array of points for the transformation [x1, y1, x2, y2, ..., x_n, y_n]
-        var transPoints: Array<FloatArray> = arrayOf(FloatArray(2*(Model.getData(tags[0])!!.size)), FloatArray(2*(Model.getData(tags[1])!!.size)), FloatArray(2*(Model.getData(tags[2])!!.size)))
+        var transPoints: Array<FloatArray> = arrayOf(FloatArray(2*(Model.getData(index)!!.size)), FloatArray(2*(Model.getData(index+1)!!.size)), FloatArray(2*(Model.getData(index+2)!!.size)))
         for(j in 0..2) {
-            for((i, datapoint) in Model.getData(tags[j])!!.withIndex()) {
+            for((i, datapoint) in Model.getData(index+j)!!.withIndex()) {
                 transPoints[j].set(i*2, i.toFloat())
                 transPoints[j].set(i*2+1, datapoint)
             }
@@ -297,7 +301,7 @@ class ExgDataFragment : Fragment() {
                 var activeChannels = Model.getActiveChannels()
                 if(activeChannels != null) {
                     for (i in 1..maxCharts) {
-                        if (activeChannels.contains("Channel_${i}")) {
+                        if (activeChannels[i-1]) {
                             if (channels[i - 1].isGone) channels[i - 1].visibility = View.VISIBLE
                             channels[i-1].invalidate()
                         }
@@ -347,6 +351,7 @@ class ExgDataFragment : Fragment() {
         // Add a tag to every channel so we know what data to draw
         for(i in 1..8){
             channels[i-1].streamTag = "Channel_${i}"
+            channels[i-1].index = i-1
         }
 
         mainHandler = Handler(Looper.getMainLooper())
@@ -383,6 +388,13 @@ class SensorDataFragment : Fragment() {
     val updateChartDelayed = object : Runnable {
         override fun run() {
             if(Model.isConnected) {
+                if(!gyroscope.isVisible) gyroscope.visibility = View.VISIBLE
+                gyroscope.invalidate()
+                if(!accelerometer.isVisible) accelerometer.visibility = View.VISIBLE
+                accelerometer.invalidate()
+                if(!magnetometer.isVisible) magnetometer.visibility = View.VISIBLE
+                magnetometer.invalidate()
+                /**
                 if(Model.isGyroscopeActive()) {
                     if(!gyroscope.isVisible) gyroscope.visibility = View.VISIBLE
                     gyroscope.invalidate()
@@ -406,6 +418,7 @@ class SensorDataFragment : Fragment() {
                 else {
                     if(magnetometer.isVisible) magnetometer.visibility = View.GONE
                 }
+                */
             }
             else {
                 if(gyroscope.isVisible) gyroscope.visibility = View.GONE
@@ -430,8 +443,11 @@ class SensorDataFragment : Fragment() {
         magnetometer = baseview.findViewById<SensorChart>(R.id.magnetometer)
 
         gyroscope.streamTag = "Gyro"
+        gyroscope.index = 14
         accelerometer.streamTag = "Acc"
+        accelerometer.index = 8
         magnetometer.streamTag = "Mag"
+        magnetometer.index = 11
 
         mainHandler = Handler(Looper.getMainLooper())
 
